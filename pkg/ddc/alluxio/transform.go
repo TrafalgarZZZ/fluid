@@ -17,6 +17,8 @@ package alluxio
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/resource"
+	"strings"
 
 	datav1alpha1 "github.com/fluid-cloudnative/fluid/api/v1alpha1"
 	"github.com/fluid-cloudnative/fluid/pkg/utils"
@@ -159,15 +161,54 @@ func (e *AlluxioEngine) transformCommonPart(runtime *datav1alpha1.AlluxioRuntime
 
 		l := tieredstore.GetTieredLevel(runtimeInfo, level.MediumType)
 
+		var quotaConfigStr string
+		var pathConfigStr string
+
+		paths := strings.Split(level.Path, ",")
+		numPaths := len(paths)
+		if numPaths == 0 {
+			return fmt.Errorf("AlluxioRuntime setup error: tierstore path must be set")
+		}
+
+		if len(level.QuotaList) == 0 {
+			if level.Quota == nil {
+				return fmt.Errorf("AlluxioumRuntime setup error: Either quota or quotaList must be set")
+			}
+			// Only quota is set, divide quota equally to multiple paths
+			avgQuotaIntFmt := level.Quota.Value() / int64(numPaths)
+			avgQuotaQuantityFmt := resource.NewQuantity(avgQuotaIntFmt, resource.BinarySI)
+			avgQuotaStringFmt := utils.TranformQuantityToAlluxioUnit(avgQuotaQuantityFmt)
+			quotaConfigStr = strings.Join(*utils.FillSliceWithString(avgQuotaStringFmt, numPaths), ",")
+		} else {
+			// quotaList will overwrite any value set in Quota
+			quotas := strings.Split(level.QuotaList, ",")
+			numQuotas := len(quotas)
+			if numQuotas != numPaths {
+				return fmt.Errorf("AlluxioRuntime setup error: Length of quotaList is not consistent with length of path")
+			}
+			// TODO(xuzhihao): validation on quantity string
+			for i := range quotas {
+				quotas[i] = utils.TransformQuantityStringToAlluxioUnit(quotas[i])
+			}
+			quotaConfigStr = strings.Join(quotas, ",")
+		}
+
+		for i := range paths {
+			paths[i] = fmt.Sprintf("%s/%s/%s", strings.TrimRight(paths[i], "/"), runtime.Namespace, runtime.Name)
+		}
+		pathConfigStr = strings.Join(paths, ",")
+
+		mediumTypeConfigStr := strings.Join(*utils.FillSliceWithString(string(level.MediumType), numPaths), ",")
+
 		levels = append(levels, Level{
 			Alias:      string(level.MediumType),
 			Level:      l,
 			Type:       "hostPath",
-			Path:       fmt.Sprintf("%s/%s/%s", level.Path, runtime.Namespace, runtime.Name),
-			Mediumtype: string(level.MediumType),
+			Path:       pathConfigStr,
+			Mediumtype: mediumTypeConfigStr,
 			Low:        level.Low,
 			High:       level.High,
-			Quota:      utils.TranformQuantityToAlluxioUnit(level.Quota),
+			Quota:      quotaConfigStr,
 		})
 	}
 

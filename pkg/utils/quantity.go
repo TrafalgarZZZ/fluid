@@ -21,15 +21,18 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
-func TranformQuantityToAlluxioUnit(q *resource.Quantity) (value string) {
-	value = q.String()
+func TransformQuantityStringToAlluxioUnit(str string) (value string) {
+	value = str
 
-	if strings.HasSuffix(value, "i") {
+	if strings.HasSuffix(str, "i") {
 		value = strings.ReplaceAll(value, "i", "B")
 	}
 	return
-	// return units.BytesSize(units.BytesSize(float64(q.Value())))
+}
 
+func TranformQuantityToAlluxioUnit(q *resource.Quantity) (value string) {
+	return TransformQuantityStringToAlluxioUnit(q.String())
+	// return units.BytesSize(units.BytesSize(float64(q.Value())))
 }
 
 func TranformQuantityToJindoUnit(q *resource.Quantity) (value string) {

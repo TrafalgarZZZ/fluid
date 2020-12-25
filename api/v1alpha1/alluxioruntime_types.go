@@ -112,14 +112,26 @@ type Level struct {
 	// +required
 	MediumType common.MediumType `json:"mediumtype"`
 
-	// File path to be used for the tier (e.g. /mnt/ramdisk)
+	// File paths to be used for the tier. Both single path and multiple paths can be used.
+	// Multiple paths should be separated with comma. For example: "/mnt/cache1,/mnt/cache2".
 	// +kubebuilder:validation:MinLength=1
 	// +required
 	Path string `json:"path,omitempty"`
 
-	// Quota for the tier. (e.g. 100GB)
+	// Quota for the whole tier. (e.g. 100GB)
+	// Please note that if there're multiple paths used for this tierstore, the quota will be equally divided into
+	// these paths. If you'd like to set quota for each path, see QuotaList for more information.
 	// +required
 	Quota *resource.Quantity `json:"quota,omitempty"`
+
+	// QuotaList are quotas used to set quota on multiple path. Quotas should be separated with comma.
+	// Quotas in this list will be set to paths with the same order in Path.
+	// For example, With Path defined with "/mnt/cache1,/mnt/cache2" and QuotaList set to "100GB,50GB",
+	// then we get 100GB cache storage under /mnt/cache1 and 50GB cache storage under /mnt/cache2.
+	// Num of quotas must be equal to num of paths defined in Path.
+	// +optional
+	// todo: kubebuilder validation
+	QuotaList string `json:"quotaList,omitempty"`
 
 	// StorageType common.CacheStoreType `json:"storageType,omitempty"`
 	// float64 is not supported, https://github.com/kubernetes-sigs/controller-tools/issues/245
