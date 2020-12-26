@@ -16,13 +16,12 @@ limitations under the License.
 package tieredstore
 
 import (
-	"sort"
-
 	"github.com/fluid-cloudnative/fluid/pkg/common"
 	"github.com/fluid-cloudnative/fluid/pkg/ddc/base"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/resource"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sort"
 )
 
 var log logr.Logger
@@ -58,18 +57,22 @@ func makeMediumTypeSorted(mediumTypes []common.MediumType) []common.MediumType {
 func GetLevelStorageMap(runtimeInfo base.RuntimeInfoInterface) (storage map[common.CacheStoreType]*resource.Quantity) {
 	storage = map[common.CacheStoreType]*resource.Quantity{}
 
-	for _, level := range runtimeInfo.GetTieredstore().Levels {
+	for _, level := range runtimeInfo.GetTieredstoreInfo().Levels {
 		storageType := common.MemoryCacheStore
 		if level.MediumType == common.SSD || level.MediumType == common.HDD {
 			storageType = common.DiskCacheStore
 		}
 
+		totalQuota := resource.NewQuantity(0, resource.BinarySI)
 		if capacity, found := storage[storageType]; found {
-			capacity.Add(*level.Quota)
-			storage[storageType] = capacity
-		} else {
-			storage[storageType] = level.Quota
+			totalQuota = capacity
+
 		}
+
+		for _, cachePath := range level.CachePaths {
+			totalQuota.Add(*cachePath.Quota)
+		}
+		storage[storageType] = totalQuota
 	}
 
 	return storage
@@ -79,7 +82,7 @@ func GetLevelStorageMap(runtimeInfo base.RuntimeInfoInterface) (storage map[comm
 // GetTieredLevel returns index
 func GetTieredLevel(runtimeInfo base.RuntimeInfoInterface, mediumType common.MediumType) int {
 	levels := []common.MediumType{}
-	for _, level := range runtimeInfo.GetTieredstore().Levels {
+	for _, level := range runtimeInfo.GetTieredstoreInfo().Levels {
 		levels = append(levels, level.MediumType)
 	}
 

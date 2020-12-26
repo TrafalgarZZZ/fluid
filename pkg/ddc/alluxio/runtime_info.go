@@ -24,7 +24,10 @@ func (e *AlluxioEngine) getRuntimeInfo() (base.RuntimeInfoInterface, error) {
 		if err != nil {
 			return e.runtimeInfo, err
 		}
-		e.runtimeInfo = base.BuildRuntimeInfo(e.name, e.namespace, e.runtimeType, runtime.Spec.Tieredstore)
+		e.runtimeInfo, err = base.BuildRuntimeInfo(e.name, e.namespace, e.runtimeType, runtime.Spec.Tieredstore)
+		if err != nil {
+			return e.runtimeInfo, err
+		}
 	}
 	return e.runtimeInfo, nil
 }
