@@ -167,12 +167,12 @@ func (e *AlluxioEngine) transformCommonPart(runtime *datav1alpha1.AlluxioRuntime
 		paths := strings.Split(level.Path, ",")
 		numPaths := len(paths)
 		if numPaths == 0 {
-			return fmt.Errorf("AlluxioRuntime setup error: tierstore path must be set")
+			return fmt.Errorf("AlluxioRuntime config: tierstore path must be set")
 		}
 
 		if len(level.QuotaList) == 0 {
 			if level.Quota == nil {
-				return fmt.Errorf("AlluxioumRuntime setup error: Either quota or quotaList must be set")
+				return fmt.Errorf("AlluxioumRuntime config: Either quota or quotaList must be set")
 			}
 			// Only quota is set, divide quota equally to multiple paths
 			avgQuotaIntFmt := level.Quota.Value() / int64(numPaths)
@@ -184,7 +184,7 @@ func (e *AlluxioEngine) transformCommonPart(runtime *datav1alpha1.AlluxioRuntime
 			quotas := strings.Split(level.QuotaList, ",")
 			numQuotas := len(quotas)
 			if numQuotas != numPaths {
-				return fmt.Errorf("AlluxioRuntime setup error: Length of quotaList is not consistent with length of path")
+				return fmt.Errorf("AlluxioRuntime config: Length of quotaList should be consistent with length of path")
 			}
 			// TODO(xuzhihao): validation on quantity string
 			for i := range quotas {
