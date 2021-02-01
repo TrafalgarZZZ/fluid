@@ -42,4 +42,3 @@ jobs:
         
     - name: Build
       run: make test
-      working-directory: /home/runner/go/src/fluid-cloudnative/fluid
