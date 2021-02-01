@@ -21,7 +21,10 @@ jobs:
       with:
         go-version: 1.14
     
-    - uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v2
+      with:
+        path: ${{ env.GOPATH }}/src/github.com/fluid-cloudnative/fluid
 
 #     - name: echo GOPATH
 #       run: |
