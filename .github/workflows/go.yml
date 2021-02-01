@@ -7,8 +7,13 @@ on:
     branches: [ master ]
 
 jobs:
-
   build:
+    env:
+      GOPATH: ${{ github.workspace }}
+      GO111MODULE: off
+    defaults:
+      run:
+        working-directory: ${{ env.GOPATH }}/src/github.com/${{ github.repository }}
     runs-on: ubuntu-latest
     steps:
     - name: Set up Go
@@ -18,23 +23,23 @@ jobs:
     
     - uses: actions/checkout@v2
 
-    - name: echo GOPATH
-      run: |
-        echo $GITHUB_WORKSPACE
-        export WORKDIR=$(go env GOPATH)/src/fluid-cloudnative
-        mkdir -p $WORKDIR
-        cp -r $(pwd) $WORKDIR
-        cd $WORKDIR
-        pwd
+#     - name: echo GOPATH
+#       run: |
+#         echo $GITHUB_WORKSPACE
+#         export WORKDIR=$(go env GOPATH)/src/fluid-cloudnative
+#         mkdir -p $WORKDIR
+#         cp -r $(pwd) $WORKDIR
+#         cd $WORKDIR
+#         pwd
         
-    - name: setup kubebuilder
-      run: |
-        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin latest
-        arch=$(go env GOARCH)
-        curl -L https://go.kubebuilder.io/dl/2.3.1/linux/${arch} | tar -xz -C /tmp/
-        sudo mv /tmp/kubebuilder_2.3.1_linux_${arch} /usr/local/kubebuilder
-        export PATH=$PATH:/usr/local/kubebuilder/bin
+#     - name: setup kubebuilder
+#       run: |
+#         curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin latest
+#         arch=$(go env GOARCH)
+#         curl -L https://go.kubebuilder.io/dl/2.3.1/linux/${arch} | tar -xz -C /tmp/
+#         sudo mv /tmp/kubebuilder_2.3.1_linux_${arch} /usr/local/kubebuilder
+#         export PATH=$PATH:/usr/local/kubebuilder/bin
         
     - name: Build
-      run: make generate
+      run: make test
       working-directory: /home/runner/go/src/fluid-cloudnative/fluid
