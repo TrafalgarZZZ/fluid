@@ -21,7 +21,7 @@ jobs:
     - name: echo GOPATH
       run: |
         echo $GITHUB_WORKSPACE
-        export WORKDIR=$(go env GOPATH)/fluid-cloudnative
+        export WORKDIR=$(go env GOPATH)/src/fluid-cloudnative
         mkdir -p $WORKDIR
         cp -r $(pwd) $WORKDIR
         cd $WORKDIR
@@ -29,5 +29,5 @@ jobs:
       
       
     - name: Build
-      run: make build
-      working-directory: /home/runner/go/fluid-cloudnative/fluid
+      run: make generate
+      working-directory: /home/runner/go/src/fluid-cloudnative/fluid
