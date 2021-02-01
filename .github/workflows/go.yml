@@ -26,8 +26,15 @@ jobs:
         cp -r $(pwd) $WORKDIR
         cd $WORKDIR
         pwd
-      
-      
+        
+    - name: setup kubebuilder
+      run: |
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin latest
+        arch=$(go env GOARCH)
+        curl -L https://go.kubebuilder.io/dl/2.3.1/linux/${arch} | tar -xz -C /tmp/
+        sudo mv /tmp/kubebuilder_2.3.1_linux_${arch} /usr/local/kubebuilder
+        export PATH=$PATH:/usr/local/kubebuilder/bin
+        
     - name: Build
       run: make generate
       working-directory: /home/runner/go/src/fluid-cloudnative/fluid
