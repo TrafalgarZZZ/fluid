@@ -17,12 +17,16 @@ jobs:
         go-version: 1.14
     
     - uses: actions/checkout@v2
-    
+
     - name: echo GOPATH
       run: |
-        echo $(go env GOPATH)
+        echo $GITHUB_WORKSPACE
+        export WORKDIR=$(go env GOPATH)/fluid-cloudnative
+        mkdir -p $WORKDIR
+        cp -r $(pwd) $WORKDIR
+        cd $WORKDIR
         pwd
-        ls
+      
       
     - name: Build
       run: make build
