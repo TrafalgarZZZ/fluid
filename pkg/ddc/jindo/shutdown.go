@@ -6,6 +6,8 @@ import (
 	"github.com/fluid-cloudnative/fluid/pkg/utils/helm"
 	"github.com/fluid-cloudnative/fluid/pkg/utils/kubeclient"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -92,24 +94,17 @@ func (e *JindoEngine) destroyWorkers(workers int32) (err error) {
 		labelExclusiveName = common.LabelAnnotationExclusive
 	)
 
-	err = e.List(context.TODO(), nodeList, &client.ListOptions{})
+	// 1. select all nodes with specific label with label selector
+	requirement, _ := labels.NewRequirement(labelCommonName, selection.Exists, nil)
+	err = e.List(context.TODO(), nodeList, &client.ListOptions{
+		LabelSelector: labels.NewSelector().Add(*requirement),
+	})
 	if err != nil {
 		return
 	}
 
 	labelNames := []string{labelName, labelTotalname, labelDiskName, labelMemoryName, labelCommonName}
 
-	runtimeInfo, err := e.getRuntimeInfo()
-	if err != nil {
-		return
-	}
-
-	if runtimeInfo.IsExclusive() {
-		labelNames = append(labelNames, labelExclusiveName)
-	}
-
-	// 1.select the nodes
-	// TODO(cheyang) Need consider node selector
 	var i int32 = 0
 	for _, node := range nodeList.Items {
 		if workers >= 0 {
@@ -119,14 +114,15 @@ func (e *JindoEngine) destroyWorkers(workers int32) (err error) {
 			}
 		}
 
-		// nodes = append(nodes, &node)
 		toUpdate := node.DeepCopy()
-		if len(toUpdate.Labels) == 0 {
-			continue
-		}
 
 		for _, label := range labelNames {
 			delete(toUpdate.Labels, label)
+		}
+
+		exclusiveLabelValue := e.namespace + "-" + e.name
+		if val, exist := toUpdate.Labels[labelExclusiveName]; exist && val == exclusiveLabelValue {
+			delete(toUpdate.Labels, labelExclusiveName)
 		}
 
 		if len(toUpdate.Labels) < len(node.Labels) {
