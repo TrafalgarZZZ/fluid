@@ -89,7 +89,7 @@ func (e *JindoEngine) destroyWorkers(workers int32) (err error) {
 		labelMemoryName    = e.getStoragetLabelname(humanReadType, memoryStorageType)
 		labelDiskName      = e.getStoragetLabelname(humanReadType, diskStorageType)
 		labelTotalname     = e.getStoragetLabelname(humanReadType, totalStorageType)
-		labelExclusiveName = common.Exclusive
+		labelExclusiveName = common.LabelAnnotationExclusive
 	)
 
 	err = e.List(context.TODO(), nodeList, &client.ListOptions{})

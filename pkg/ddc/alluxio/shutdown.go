@@ -162,14 +162,13 @@ func (e *AlluxioEngine) cleanAll() (err error) {
 // destroyWorkers will delete the workers by number of the workers, if workers is -1, it means all the workers are deleted
 func (e *AlluxioEngine) destroyWorkers(workers int32) (err error) {
 	var (
-		nodeList *corev1.NodeList = &corev1.NodeList{}
-
-		labelName          = e.getRuntimeLabelname()
-		labelCommonName    = e.getCommonLabelname()
-		labelMemoryName    = e.getStoragetLabelname(humanReadType, memoryStorageType)
-		labelDiskName      = e.getStoragetLabelname(humanReadType, diskStorageType)
-		labelTotalname     = e.getStoragetLabelname(humanReadType, totalStorageType)
-		labelExclusiveName = common.Exclusive
+		nodeList           *corev1.NodeList = &corev1.NodeList{}
+		labelName                           = e.getRuntimeLabelname()
+		labelCommonName                     = e.getCommonLabelname()
+		labelMemoryName                     = e.getStoragetLabelname(humanReadType, memoryStorageType)
+		labelDiskName                       = e.getStoragetLabelname(humanReadType, diskStorageType)
+		labelTotalname                      = e.getStoragetLabelname(humanReadType, totalStorageType)
+		labelExclusiveName                  = common.LabelAnnotationExclusive
 	)
 
 	// 1. select all nodes with specific label with label selector
@@ -184,17 +183,6 @@ func (e *AlluxioEngine) destroyWorkers(workers int32) (err error) {
 
 	labelNames := []string{labelName, labelTotalname, labelDiskName, labelMemoryName, labelCommonName}
 
-	//runtimeInfo, err := e.getRuntimeInfo()
-	//if err != nil {
-	//	return
-	//}
-	//
-	//if runtimeInfo.IsExclusive() {
-	//	labelNames = append(labelNames, labelExclusiveName)
-	//}
-
-	// 1.select the nodes
-	// TODO(cheyang) Need consider node selector
 	var i int32 = 0
 	for _, node := range nodeList.Items {
 		if workers >= 0 {
@@ -204,17 +192,13 @@ func (e *AlluxioEngine) destroyWorkers(workers int32) (err error) {
 			}
 		}
 
-		// nodes = append(nodes, &node)
 		toUpdate := node.DeepCopy()
-		//if len(toUpdate.Labels) == 0 {
-		//	continue
-		//}
-
 		for _, label := range labelNames {
 			delete(toUpdate.Labels, label)
 		}
 
-		if val, exist := toUpdate.Labels[labelExclusiveName]; exist && val == e.getExclusiveLabelValue() {
+		exclusiveLabelValue := e.namespace + "-" + e.name
+		if val, exist := toUpdate.Labels[labelExclusiveName]; exist && val == exclusiveLabelValue {
 			delete(toUpdate.Labels, labelExclusiveName)
 		}
 
