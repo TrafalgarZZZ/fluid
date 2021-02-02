@@ -18,6 +18,8 @@ package alluxio
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"strings"
 	"time"
 
@@ -170,21 +172,26 @@ func (e *AlluxioEngine) destroyWorkers(workers int32) (err error) {
 		labelExclusiveName = common.Exclusive
 	)
 
-	err = e.List(context.TODO(), nodeList, &client.ListOptions{})
+	// 1. select all nodes with specific label with label selector
+	requirement, _ := labels.NewRequirement(labelCommonName, selection.Exists, nil)
+	err = e.List(context.TODO(), nodeList, &client.ListOptions{
+		LabelSelector: labels.NewSelector().Add(*requirement),
+	})
+
 	if err != nil {
 		return
 	}
 
 	labelNames := []string{labelName, labelTotalname, labelDiskName, labelMemoryName, labelCommonName}
 
-	runtimeInfo, err := e.getRuntimeInfo()
-	if err != nil {
-		return
-	}
-
-	if runtimeInfo.IsExclusive() {
-		labelNames = append(labelNames, labelExclusiveName)
-	}
+	//runtimeInfo, err := e.getRuntimeInfo()
+	//if err != nil {
+	//	return
+	//}
+	//
+	//if runtimeInfo.IsExclusive() {
+	//	labelNames = append(labelNames, labelExclusiveName)
+	//}
 
 	// 1.select the nodes
 	// TODO(cheyang) Need consider node selector
@@ -199,12 +206,16 @@ func (e *AlluxioEngine) destroyWorkers(workers int32) (err error) {
 
 		// nodes = append(nodes, &node)
 		toUpdate := node.DeepCopy()
-		if len(toUpdate.Labels) == 0 {
-			continue
-		}
+		//if len(toUpdate.Labels) == 0 {
+		//	continue
+		//}
 
 		for _, label := range labelNames {
 			delete(toUpdate.Labels, label)
+		}
+
+		if val, exist := toUpdate.Labels[labelExclusiveName]; exist && val == e.getExclusiveLabelValue() {
+			delete(toUpdate.Labels, labelExclusiveName)
 		}
 
 		if len(toUpdate.Labels) < len(node.Labels) {
