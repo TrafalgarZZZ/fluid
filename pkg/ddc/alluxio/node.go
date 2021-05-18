@@ -18,10 +18,12 @@ package alluxio
 import (
 	"github.com/fluid-cloudnative/fluid/pkg/utils"
 	datasetSchedule "github.com/fluid-cloudnative/fluid/pkg/utils/dataset/lifecycle"
+	"time"
 )
 
 // AssignNodesToCache finds nodes to place the cache engine
 func (e *AlluxioEngine) AssignNodesToCache(desiredNum int32) (currentScheduleNum int32, err error) {
+	defer utils.TimeTrack(time.Now(), "AssignNodesToCache", "dataset", e.name)
 
 	runtimeInfo, err := e.getRuntimeInfo()
 	if err != nil {
@@ -34,6 +36,7 @@ func (e *AlluxioEngine) AssignNodesToCache(desiredNum int32) (currentScheduleNum
 	}
 
 	e.Log.Info("AssignNodesToCache", "dataset", dataset)
+	defer utils.TimeTrack(time.Now(), "datasetSchedule.AssignDatasetToNodes", "dataset", e.name)
 	return datasetSchedule.AssignDatasetToNodes(runtimeInfo,
 		dataset,
 		e.Client,

@@ -19,6 +19,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/fluid-cloudnative/fluid/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
@@ -56,12 +57,16 @@ func AssignDatasetToNodes(runtimeInfo base.RuntimeInfoInterface,
 		log                   = rootLog.WithValues("runtime", runtimeInfo.GetName(), "namespace", runtimeInfo.GetNamespace())
 	)
 
+	startTime := time.Now()
 	// 1. get all nodes in the cluster
 	err = runtimeClient.List(context.TODO(), nodeList, &client.ListOptions{})
 	if err != nil {
 		return
 	}
 
+	utils.TimeTrack(startTime, "get all nodes in the cluster", "dataset", dataset.Name)
+
+	startTime = time.Now()
 	// 2. filters scheduled nodes and build a map for future use
 	datasetLabels, err := labels.Parse(fmt.Sprintf("%s=true", runtimeInfo.GetCommonLabelname()))
 	if err != nil {
@@ -80,7 +85,9 @@ func AssignDatasetToNodes(runtimeInfo base.RuntimeInfoInterface,
 		currentScheduledNodes[node.Name] = node
 		log.Info("Node is already assigned", "node", node.Name, "dataset", dataset.Name)
 	}
+	utils.TimeTrack(startTime, "filters scheduled nodes", "dataset", dataset.Name)
 
+	startTime = time.Now()
 	// 3. Sort nodes if in fuse global mode
 	fuseGlobal, nodeSelector := runtimeInfo.GetFuseDeployMode()
 
@@ -89,14 +96,19 @@ func AssignDatasetToNodes(runtimeInfo base.RuntimeInfoInterface,
 		log.Error(err, "Failed to get PVC Mount Nodes, will treat every node as no PVC mount Pods")
 	}
 
+	utils.TimeTrack(startTime, "get pvc mount nodes", "dataset", dataset.Name)
+
 	var nodes []corev1.Node
 
 	if fuseGlobal {
+		sortStartTime := time.Now()
 		nodes = sortNodesToBeScheduled(nodeList.Items, pvcMountNodesMap, nodeSelector)
+		utils.TimeTrack(sortStartTime, "sort nodes to be scheduled", "dataset", dataset.Name)
 	} else {
 		nodes = nodeList.Items
 	}
 
+	startTime = time.Now()
 	// 4. filter candidate nodes
 	for _, node := range nodes {
 
@@ -161,6 +173,7 @@ func AssignDatasetToNodes(runtimeInfo base.RuntimeInfoInterface,
 
 		currentScheduledNodes[node.Name] = node
 	}
+	utils.TimeTrack(startTime, "filter candidate nodes", "dataset", dataset.Name)
 
 	currentScheduleNum = int32(len(currentScheduledNodes))
 	newScheduleNum = int32(len(newScheduledNodes))
@@ -169,6 +182,7 @@ func AssignDatasetToNodes(runtimeInfo base.RuntimeInfoInterface,
 		"currentScheduleNum", currentScheduleNum,
 		"newScheduleNum", newScheduleNum)
 
+	startTime = time.Now()
 	// 5. bind the dataset to selected nodes via adding corresponding labels on them
 	for _, node := range newScheduledNodes {
 		err = LabelCacheNode(node, runtimeInfo, runtimeClient)
@@ -176,6 +190,7 @@ func AssignDatasetToNodes(runtimeInfo base.RuntimeInfoInterface,
 			return
 		}
 	}
+	utils.TimeTrack(startTime, "label selected nodes", "dataset", dataset.Name)
 
 	return
 }
