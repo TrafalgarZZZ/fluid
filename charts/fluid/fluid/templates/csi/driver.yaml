@@ -3,5 +3,5 @@ kind: CSIDriver
 metadata:
   name: fuse.csi.fluid.io
 spec:
-  attachRequired: false
+  attachRequired: true
   podInfoOnMount: true

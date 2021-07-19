@@ -9,10 +9,12 @@ dataset:
     image: registry.aliyuncs.com/fluid/dataset-controller:v0.6.0-4ded84e
 
 csi:
+  attacher:
+    image: registry.cn-hangzhou.aliyuncs.com/acs/csi-attacher:v2.1.0
   registrar:
     image: registry.aliyuncs.com/acs/csi-node-driver-registrar:v1.2.0
   plugins:
-    image: registry.cn-shanghai.aliyuncs.com/fluid-images/csi-plugin:v0.6.0-33efe0e
+    image: registry.cn-shanghai.aliyuncs.com/fluid-images/csi-plugin:v0.6.0-a8d8cea
     # image: registry.aliyuncs.com/fluid/fluid-csi:v0.6.0-4ded84e
   kubelet:
     rootDir: /var/lib/kubelet
