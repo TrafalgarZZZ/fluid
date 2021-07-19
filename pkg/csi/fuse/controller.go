@@ -116,6 +116,16 @@ func (cs *controllerServer) ControllerExpandVolume(ctx context.Context, req *csi
 	return &csi.ControllerExpandVolumeResponse{}, status.Error(codes.Unimplemented, "ControllerExpandVolume is not implemented")
 }
 
+func (cs *controllerServer) ControllerPublishVolume(ctx context.Context, req *csi.ControllerPublishVolumeRequest) (*csi.ControllerPublishVolumeResponse, error) {
+	glog.Infof("ControllerPublishVolume: try to start a FUSE container, %v", req)
+	return &csi.ControllerPublishVolumeResponse{}, nil
+}
+
+func (cs *controllerServer) ControllerUnpublishVolume(ctx context.Context, req *csi.ControllerUnpublishVolumeRequest) (*csi.ControllerUnpublishVolumeResponse, error) {
+	glog.Infof("ControllerUnpublishVolume: try to destroy a FUSE container, %v", req)
+	return &csi.ControllerUnpublishVolumeResponse{}, nil
+}
+
 func sanitizeVolumeID(volumeID string) string {
 	volumeID = strings.ToLower(volumeID)
 	if len(volumeID) > 63 {
