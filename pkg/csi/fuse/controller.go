@@ -240,8 +240,8 @@ func (cs *controllerServer) makeEnvironmentVariables(namespace string, container
 				optional := cm.Optional != nil && *cm.Optional
 				configMap = &v1.ConfigMap{}
 				err = cs.client.Get(context.TODO(), types.NamespacedName{
-					Namespace: name,
-					Name:      namespace,
+					Namespace: namespace,
+					Name:      name,
 				}, configMap)
 
 				if err != nil {
