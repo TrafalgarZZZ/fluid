@@ -14,7 +14,7 @@ csi:
   registrar:
     image: registry.aliyuncs.com/acs/csi-node-driver-registrar:v1.2.0
   plugins:
-    image: registry.cn-shanghai.aliyuncs.com/fluid-images/csi-plugin:v0.6.0-a8d8cea
+    image: registry.cn-shanghai.aliyuncs.com/fluid-images/csi-plugin:v0.6.0-eb4c083
     # image: registry.aliyuncs.com/fluid/fluid-csi:v0.6.0-4ded84e
   kubelet:
     rootDir: /var/lib/kubelet

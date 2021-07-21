@@ -105,7 +105,7 @@ func handle() {
 		Scheme:             scheme,
 		MetricsBindAddress: metricsAddr,
 		LeaderElection:     enableLeaderElection,
-		LeaderElectionID:   "7857424864.data.fluid.io",
+		LeaderElectionID:   "7857424889.data.fluid.io",
 		Port:               9443,
 	})
 

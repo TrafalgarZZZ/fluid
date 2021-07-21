@@ -18,8 +18,8 @@ spec:
       tolerations:
       - operator: Exists
       #priorityClassName: system-node-critical
-      hostNetwork: true
-      hostPID: true
+#      hostNetwork: true
+#      hostPID: true
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -54,6 +54,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+          ports:
+            - containerPort: 8080
+              name: metrics
+              protocol: TCP
           volumeMounts:
             - name: kubelet-dir
               mountPath: {{ .Values.csi.kubelet.rootDir }}
