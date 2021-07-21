@@ -95,7 +95,13 @@ spec:
             - name: fluid-src-dir
               mountPath: {{ .Values.runtime.mountRoot | quote }}
               mountPropagation: "Bidirectional"
+            - name: docker-sock
+              mountPath: /var/run/docker.sock
       volumes:
+        - name: docker-sock
+          hostPath:
+            path: /var/run/docker.sock
+            type: Socket
         - name: kubelet-dir
           hostPath:
             path: {{ .Values.csi.kubelet.rootDir }}

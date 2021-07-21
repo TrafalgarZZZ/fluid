@@ -23,7 +23,6 @@ import (
 	dockercontainer "github.com/docker/docker/api/types/container"
 	dockerstrslice "github.com/docker/docker/api/types/strslice"
 	dockerclient "github.com/docker/docker/client"
-	"github.com/fluid-cloudnative/fluid/pkg/utils/kubeclient"
 	"github.com/pkg/errors"
 	"io"
 	appsv1 "k8s.io/api/apps/v1"
@@ -144,6 +143,7 @@ func (cs *controllerServer) ControllerPublishVolume(ctx context.Context, req *cs
 	}
 
 	namespacedName := strings.Split(req.GetVolumeId(), "-")
+	glog.Infof("Making container run config with namespace: %s and name: %s", namespacedName[0], namespacedName[1])
 	containerConfig, err := cs.makeContainerRunConfig(namespacedName[0], namespacedName[1])
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("Can't make container run config"))
@@ -197,7 +197,7 @@ func (cs *controllerServer) makeContainerRunConfig(namespace, name string) (*doc
 	}
 
 	containerToStart := daemonset.Spec.Template.Spec.Containers[0]
-	envs, err := cs.makeEnvironmentVariables(fuseDaemonsetName, &containerToStart)
+	envs, err := cs.makeEnvironmentVariables(namespace, &containerToStart)
 
 	return &dockercontainer.Config{
 		Env:        envs,
@@ -234,7 +234,12 @@ func (cs *controllerServer) makeEnvironmentVariables(namespace string, container
 					return result, fmt.Errorf("couldn't get configMap %v/%v, no kubeClient defined", namespace, name)
 				}
 				optional := cm.Optional != nil && *cm.Optional
-				configMap, err = kubeclient.GetConfigmapByName(cs.client, name, namespace)
+				configMap = &v1.ConfigMap{}
+				err = cs.client.Get(context.TODO(), types.NamespacedName{
+					Namespace: name,
+					Name:      namespace,
+				}, configMap)
+
 				if err != nil {
 					if apierrs.IsNotFound(err) && optional {
 						continue
