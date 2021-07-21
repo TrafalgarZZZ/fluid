@@ -198,6 +198,10 @@ func (cs *controllerServer) makeContainerRunConfig(namespace, name string) (*doc
 
 	containerToStart := daemonset.Spec.Template.Spec.Containers[0]
 	envs, err := cs.makeEnvironmentVariables(namespace, &containerToStart)
+	if err != nil {
+		return nil, err
+	}
+	glog.Infof("Got environments like %v", envs)
 
 	return &dockercontainer.Config{
 		Env:        envs,
