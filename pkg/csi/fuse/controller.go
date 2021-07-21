@@ -152,7 +152,7 @@ func (cs *controllerServer) ControllerPublishVolume(ctx context.Context, req *cs
 	glog.Info(">>>> container config", containerConfig)
 
 	//io.Copy(os.Stdout, reader)
-	resp, err := cli.ContainerCreate(ctx, containerConfig, nil, nil, fmt.Sprintf("%s-fuse", namespacedName))
+	resp, err := cli.ContainerCreate(ctx, containerConfig, nil, nil, fmt.Sprintf("%s-%s-fuse", namespacedName[0], namespacedName[1]))
 
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("Can't create container, runConfig: %v", containerConfig))
