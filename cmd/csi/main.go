@@ -114,10 +114,12 @@ func handle() {
 		os.Exit(1)
 	}
 
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		glog.Errorf("unable to start csi controller manager due to error: %v", err)
-		os.Exit(1)
-	}
+	go func() {
+		if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+			glog.Errorf("unable to start csi controller manager due to error: %v", err)
+			os.Exit(1)
+		}
+	}()
 
 	// startReaper()
 	fluid.LogVersion()
