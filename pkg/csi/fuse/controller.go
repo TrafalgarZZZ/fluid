@@ -18,7 +18,19 @@ package csi
 import (
 	"crypto/sha1"
 	"encoding/hex"
+	"fmt"
+	dockerapi "github.com/docker/docker/api/types"
+	dockercontainer "github.com/docker/docker/api/types/container"
+	dockerstrslice "github.com/docker/docker/api/types/strslice"
+	dockerclient "github.com/docker/docker/client"
+	"github.com/fluid-cloudnative/fluid/pkg/utils/kubeclient"
+	"github.com/pkg/errors"
 	"io"
+	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
+	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
@@ -29,8 +41,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+const AlluxioFuseImage = "registry.aliyuncs.com/alluxio/alluxio-fuse:release-2.5.0-2-SNAPSHOT-52ad95c"
+
 type controllerServer struct {
 	*csicommon.DefaultControllerServer
+	client client.Client
 }
 
 func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
@@ -118,6 +133,35 @@ func (cs *controllerServer) ControllerExpandVolume(ctx context.Context, req *csi
 
 func (cs *controllerServer) ControllerPublishVolume(ctx context.Context, req *csi.ControllerPublishVolumeRequest) (*csi.ControllerPublishVolumeResponse, error) {
 	glog.Infof("ControllerPublishVolume: try to start a FUSE container, %v", req)
+	cli, err := dockerclient.NewClientWithOpts(dockerclient.FromEnv)
+	if err != nil {
+		return nil, errors.Wrap(err, "Can't new docker client")
+	}
+
+	_, err = cli.ImagePull(ctx, AlluxioFuseImage, dockerapi.ImagePullOptions{})
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("Can't pull image(%s)", AlluxioFuseImage))
+	}
+
+	namespacedName := strings.Split(req.GetVolumeId(), "-")
+	containerConfig, err := cs.makeContainerRunConfig(namespacedName[0], namespacedName[1])
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("Can't make container run config"))
+	}
+
+	glog.Info(">>>> container config", containerConfig)
+
+	//io.Copy(os.Stdout, reader)
+	resp, err := cli.ContainerCreate(ctx, containerConfig, nil, nil, fmt.Sprintf("%s-fuse", namespacedName))
+
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("Can't create container, runConfig: %v", containerConfig))
+	}
+
+	if err := cli.ContainerStart(ctx, resp.ID, dockerapi.ContainerStartOptions{}); err != nil {
+		return nil, errors.Wrap(err, "Can't start container")
+	}
+
 	return &csi.ControllerPublishVolumeResponse{}, nil
 }
 
@@ -137,4 +181,91 @@ func sanitizeVolumeID(volumeID string) string {
 		volumeID = hex.EncodeToString(h.Sum(nil))
 	}
 	return volumeID
+}
+
+func (cs *controllerServer) makeContainerRunConfig(namespace, name string) (*dockercontainer.Config, error) {
+	fuseDaemonsetName := name + "-fuse"
+
+	daemonset := &appsv1.DaemonSet{}
+	err := cs.client.Get(context.TODO(), types.NamespacedName{
+		Name:      fuseDaemonsetName,
+		Namespace: namespace,
+	}, daemonset)
+
+	if err != nil {
+		return nil, err
+	}
+
+	containerToStart := daemonset.Spec.Template.Spec.Containers[0]
+	envs, err := cs.makeEnvironmentVariables(fuseDaemonsetName, &containerToStart)
+
+	return &dockercontainer.Config{
+		Env:        envs,
+		Image:      containerToStart.Image,
+		Entrypoint: dockerstrslice.StrSlice(containerToStart.Command),
+		Cmd:        dockerstrslice.StrSlice(containerToStart.Args),
+		WorkingDir: containerToStart.WorkingDir,
+		OpenStdin:  containerToStart.Stdin,
+		StdinOnce:  containerToStart.StdinOnce,
+		Tty:        containerToStart.TTY,
+		Healthcheck: &dockercontainer.HealthConfig{
+			Test: []string{"NONE"},
+		},
+	}, nil
+}
+
+func (cs *controllerServer) makeEnvironmentVariables(namespace string, container *v1.Container) ([]string, error) {
+	var result []string
+	var err error
+	var (
+		configMaps = make(map[string]*v1.ConfigMap)
+		//secrets = make(map[string]*v1.Secret)
+		tmpEnv = make(map[string]string)
+	)
+
+	for _, envFrom := range container.EnvFrom {
+		switch {
+		case envFrom.ConfigMapRef != nil:
+			cm := envFrom.ConfigMapRef
+			name := cm.Name
+			configMap, ok := configMaps[name]
+			if !ok {
+				if cs.client == nil {
+					return result, fmt.Errorf("couldn't get configMap %v/%v, no kubeClient defined", namespace, name)
+				}
+				optional := cm.Optional != nil && *cm.Optional
+				configMap, err = kubeclient.GetConfigmapByName(cs.client, name, namespace)
+				if err != nil {
+					if apierrs.IsNotFound(err) && optional {
+						continue
+					}
+					return result, err
+				}
+				configMaps[name] = configMap
+			}
+
+			for k, v := range configMap.Data {
+				if len(envFrom.Prefix) > 0 {
+					k = envFrom.Prefix + k
+				}
+				tmpEnv[k] = v
+			}
+		}
+	}
+
+	for _, envVar := range container.Env {
+		runtimeVal := envVar.Value
+		if runtimeVal != "" {
+			tmpEnv[envVar.Name] = runtimeVal
+		} else if envVar.ValueFrom != nil {
+			// Currently we ignore such env for PoC
+			continue
+		}
+	}
+
+	for k, v := range tmpEnv {
+		result = append(result, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	return result, nil
 }
