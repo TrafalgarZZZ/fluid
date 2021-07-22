@@ -328,15 +328,17 @@ func (cs *controllerServer) makeMounts(podSpec *v1.PodSpec, container *v1.Contai
 					attrs = append(attrs, "ro")
 				}
 
-				switch *volumeMount.MountPropagation {
-				case v1.MountPropagationNone:
-					//noop, private is default
-				case v1.MountPropagationBidirectional:
-					attrs = append(attrs, "rshared")
-				case v1.MountPropagationHostToContainer:
-					attrs = append(attrs, "rslave")
-				default:
-					glog.Warningf("unknown propagation mode for hostPath %q", vol.HostPath.Path)
+				if volumeMount.MountPropagation != nil {
+					switch *volumeMount.MountPropagation {
+					case v1.MountPropagationNone:
+						//noop, private is default
+					case v1.MountPropagationBidirectional:
+						attrs = append(attrs, "rshared")
+					case v1.MountPropagationHostToContainer:
+						attrs = append(attrs, "rslave")
+					default:
+						glog.Warningf("unknown propagation mode for hostPath %q", vol.HostPath.Path)
+					}
 				}
 
 				bind := fmt.Sprintf("%s:%s", vol.HostPath.Path, volumeMount.MountPath)
