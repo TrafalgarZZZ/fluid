@@ -45,6 +45,7 @@ const AlluxioFuseImage = "registry.aliyuncs.com/alluxio/alluxio-fuse:release-2.5
 type controllerServer struct {
 	*csicommon.DefaultControllerServer
 	client client.Client
+	nodeId string
 }
 
 func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
@@ -131,6 +132,11 @@ func (cs *controllerServer) ControllerExpandVolume(ctx context.Context, req *csi
 }
 
 func (cs *controllerServer) ControllerPublishVolume(ctx context.Context, req *csi.ControllerPublishVolumeRequest) (*csi.ControllerPublishVolumeResponse, error) {
+	if req.GetNodeId() != cs.nodeId {
+		glog.Infof("Got request for node(%s), ignore it", req.GetNodeId())
+		return &csi.ControllerPublishVolumeResponse{}, nil
+	}
+
 	glog.Infof("ControllerPublishVolume: try to start a FUSE container, %v", req)
 	cli, err := dockerclient.NewClientWithOpts(dockerclient.FromEnv)
 	if err != nil {

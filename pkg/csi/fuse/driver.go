@@ -89,6 +89,7 @@ func (d *driver) newControllerServer() *controllerServer {
 	return &controllerServer{
 		DefaultControllerServer: csicommon.NewDefaultControllerServer(d.csiDriver),
 		client:                  d.client,
+		nodeId:                  d.nodeId,
 	}
 }
 func (d *driver) newNodeServer() *nodeServer {
