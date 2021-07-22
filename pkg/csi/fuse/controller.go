@@ -134,7 +134,7 @@ func (cs *controllerServer) ControllerExpandVolume(ctx context.Context, req *csi
 func (cs *controllerServer) ControllerPublishVolume(ctx context.Context, req *csi.ControllerPublishVolumeRequest) (*csi.ControllerPublishVolumeResponse, error) {
 	if req.GetNodeId() != cs.nodeId {
 		glog.Infof("Got request for node(%s), ignore it", req.GetNodeId())
-		return &csi.ControllerPublishVolumeResponse{}, nil
+		return nil, nil
 	}
 
 	glog.Infof("ControllerPublishVolume: try to start a FUSE container, %v", req)
