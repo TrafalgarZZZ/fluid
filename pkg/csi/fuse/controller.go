@@ -137,6 +137,7 @@ func (cs *controllerServer) ControllerPublishVolume(ctx context.Context, req *cs
 		return nil, errors.Wrap(err, "Can't new docker client")
 	}
 
+	//TODO: Change AlluxioFuseImage to a value extracted from Daemonset
 	_, err = cli.ImagePull(ctx, AlluxioFuseImage, dockerapi.ImagePullOptions{})
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("Can't pull image(%s)", AlluxioFuseImage))
@@ -144,15 +145,21 @@ func (cs *controllerServer) ControllerPublishVolume(ctx context.Context, req *cs
 
 	namespacedName := strings.Split(req.GetVolumeId(), "-")
 	glog.Infof("Making container run config with namespace: %s and name: %s", namespacedName[0], namespacedName[1])
-	containerConfig, err := cs.makeContainerRunConfig(namespacedName[0], namespacedName[1])
+	containerConfig, hostConfig, err := cs.makeContainerRunConfig(namespacedName[0], namespacedName[1])
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("Can't make container run config"))
 	}
 
 	glog.Info(">>>> container config", containerConfig)
+	//
+	//hostConfig := &dockercontainer.HostConfig{
+	//	DNS: []string{"172.16.0.10"},
+	//	DNSSearch: []string{"default.svc.cluster.local", "svc.cluster.local", "cluster.local"},
+	//	DNSOptions: []string{"ndots:5"},
+	//}
 
 	//io.Copy(os.Stdout, reader)
-	resp, err := cli.ContainerCreate(ctx, containerConfig, nil, nil, fmt.Sprintf("%s-%s-fuse", namespacedName[0], namespacedName[1]))
+	resp, err := cli.ContainerCreate(ctx, containerConfig, hostConfig, nil, fmt.Sprintf("%s-%s-fuse", namespacedName[0], namespacedName[1]))
 
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("Can't create container, runConfig: %v", containerConfig))
@@ -183,7 +190,7 @@ func sanitizeVolumeID(volumeID string) string {
 	return volumeID
 }
 
-func (cs *controllerServer) makeContainerRunConfig(namespace, name string) (*dockercontainer.Config, error) {
+func (cs *controllerServer) makeContainerRunConfig(namespace, name string) (*dockercontainer.Config, *dockercontainer.HostConfig, error) {
 	fuseDaemonsetName := name + "-fuse"
 
 	daemonset := &appsv1.DaemonSet{}
@@ -193,29 +200,45 @@ func (cs *controllerServer) makeContainerRunConfig(namespace, name string) (*doc
 	}, daemonset)
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	containerToStart := daemonset.Spec.Template.Spec.Containers[0]
 	envs, err := cs.makeEnvironmentVariables(namespace, &containerToStart)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
+
+	binds, err := cs.makeMounts(&daemonset.Spec.Template.Spec, &containerToStart)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	//dns, dnsOpts, dnsSearch, err := cs.
+
 	glog.Infof("Got environments like %v", envs)
 
 	return &dockercontainer.Config{
-		Env:        envs,
-		Image:      containerToStart.Image,
-		Entrypoint: dockerstrslice.StrSlice(containerToStart.Command),
-		Cmd:        dockerstrslice.StrSlice(containerToStart.Args),
-		WorkingDir: containerToStart.WorkingDir,
-		OpenStdin:  containerToStart.Stdin,
-		StdinOnce:  containerToStart.StdinOnce,
-		Tty:        containerToStart.TTY,
-		Healthcheck: &dockercontainer.HealthConfig{
-			Test: []string{"NONE"},
-		},
-	}, nil
+			Env:        envs,
+			Image:      containerToStart.Image,
+			Entrypoint: dockerstrslice.StrSlice(containerToStart.Command),
+			Cmd:        dockerstrslice.StrSlice(containerToStart.Args),
+			WorkingDir: containerToStart.WorkingDir,
+			OpenStdin:  containerToStart.Stdin,
+			StdinOnce:  containerToStart.StdinOnce,
+			Tty:        containerToStart.TTY,
+			Healthcheck: &dockercontainer.HealthConfig{
+				Test: []string{"NONE"},
+			},
+		}, &dockercontainer.HostConfig{
+			Binds: binds,
+			RestartPolicy: dockercontainer.RestartPolicy{
+				Name: "no",
+			},
+			DNS:        []string{"172.16.0.10"},
+			DNSSearch:  []string{"default.svc.cluster.local", "svc.cluster.local", "cluster.local"},
+			DNSOptions: []string{"ndots:5"},
+		}, nil
 }
 
 func (cs *controllerServer) makeEnvironmentVariables(namespace string, container *v1.Container) ([]string, error) {
@@ -278,3 +301,49 @@ func (cs *controllerServer) makeEnvironmentVariables(namespace string, container
 
 	return result, nil
 }
+
+func (cs *controllerServer) makeMounts(podSpec *v1.PodSpec, container *v1.Container) ([]string, error) {
+	var result []string
+
+	volumeMap := make(map[string]v1.Volume)
+	for _, vol := range podSpec.Volumes {
+		volumeMap[vol.Name] = vol
+	}
+
+	for _, volumeMount := range container.VolumeMounts {
+		if vol, ok := volumeMap[volumeMount.Name]; !ok {
+			continue
+		} else {
+			if vol.HostPath == nil {
+				continue
+			} else {
+				var attrs []string
+				if volumeMount.ReadOnly {
+					attrs = append(attrs, "ro")
+				}
+
+				switch *volumeMount.MountPropagation {
+				case v1.MountPropagationNone:
+					//noop, private is default
+				case v1.MountPropagationBidirectional:
+					attrs = append(attrs, "rshared")
+				case v1.MountPropagationHostToContainer:
+					attrs = append(attrs, "rslave")
+				default:
+					glog.Warningf("unknown propagation mode for hostPath %q", vol.HostPath.Path)
+				}
+
+				bind := fmt.Sprintf("%s:%s", vol.HostPath.Path, volumeMount.MountPath)
+				if len(attrs) > 0 {
+					bind = fmt.Sprintf("%s:%s", bind, strings.Join(attrs, ","))
+				}
+				result = append(result, bind)
+			}
+		}
+	}
+	return result, nil
+}
+
+//func (cs *controllerServer) makeDNSConfig() (dns, dnsOpts, dnsSearch []string) {
+//
+//}
