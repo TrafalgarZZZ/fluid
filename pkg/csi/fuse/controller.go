@@ -132,10 +132,10 @@ func (cs *controllerServer) ControllerExpandVolume(ctx context.Context, req *csi
 }
 
 func (cs *controllerServer) ControllerPublishVolume(ctx context.Context, req *csi.ControllerPublishVolumeRequest) (*csi.ControllerPublishVolumeResponse, error) {
-	if req.GetNodeId() != cs.nodeId {
-		glog.Infof("Got request for node(%s), ignore it", req.GetNodeId())
-		return nil, nil
-	}
+	//if req.GetNodeId() != cs.nodeId {
+	//	glog.Infof("Got request for node(%s), ignore it", req.GetNodeId())
+	//	return nil, nil
+	//}
 
 	glog.Infof("ControllerPublishVolume: try to start a FUSE container, %v", req)
 	cli, err := dockerclient.NewClientWithOpts(dockerclient.FromEnv)
@@ -166,6 +166,7 @@ func (cs *controllerServer) ControllerPublishVolume(ctx context.Context, req *cs
 
 	//io.Copy(os.Stdout, reader)
 	resp, err := cli.ContainerCreate(ctx, containerConfig, hostConfig, nil, fmt.Sprintf("%s-%s-fuse", namespacedName[0], namespacedName[1]))
+	// TODO if err is already existence error, recreate a container
 
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("Can't create container, runConfig: %v", containerConfig))
@@ -233,6 +234,7 @@ func (cs *controllerServer) makeContainerRunConfig(namespace, name string) (*doc
 			OpenStdin:  containerToStart.Stdin,
 			StdinOnce:  containerToStart.StdinOnce,
 			Tty:        containerToStart.TTY,
+			User:       "root",
 			Healthcheck: &dockercontainer.HealthConfig{
 				Test: []string{"NONE"},
 			},
@@ -244,6 +246,8 @@ func (cs *controllerServer) makeContainerRunConfig(namespace, name string) (*doc
 			DNS:        []string{"172.16.0.10"},
 			DNSSearch:  []string{"default.svc.cluster.local", "svc.cluster.local", "cluster.local"},
 			DNSOptions: []string{"ndots:5"},
+			Privileged: true,
+			CapAdd:     []string{"SYS_ADMIN"},
 		}, nil
 }
 
