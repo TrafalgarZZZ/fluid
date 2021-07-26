@@ -30,6 +30,7 @@ import (
 	"os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
+	"time"
 
 	"github.com/fluid-cloudnative/fluid/pkg/common"
 
@@ -166,6 +167,36 @@ func (ns *nodeServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 }
 
 func (ns *nodeServer) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstageVolumeRequest) (*csi.NodeUnstageVolumeResponse, error) {
+	cli, err := dockerclient.NewClientWithOpts(dockerclient.FromEnv)
+	if err != nil {
+		return nil, errors.Wrap(err, "Can't new docker client")
+	}
+
+	namespacedName := strings.Split(req.GetVolumeId(), "-")
+	glog.Infof("Making container run config with namespace: %s and name: %s", namespacedName[0], namespacedName[1])
+	containerName := fmt.Sprintf("%s-%s-fuse", namespacedName[0], namespacedName[1])
+
+	containerJson, err := cli.ContainerInspect(ctx, containerName)
+	if err != nil {
+		if dockerclient.IsErrNotFound(err) {
+			return &csi.NodeUnstageVolumeResponse{}, nil
+		}
+		return nil, err
+	}
+
+	running := containerJson.State.Running
+	timeout := 30 * time.Second
+	if running {
+		err = cli.ContainerStop(ctx, containerName, &timeout)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if err = cli.ContainerRemove(ctx, containerName, dockerapi.ContainerRemoveOptions{}); err != nil {
+		return nil, err
+	}
+
 	return &csi.NodeUnstageVolumeResponse{}, nil
 }
 
@@ -192,29 +223,45 @@ func (ns *nodeServer) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 		return nil, errors.Wrap(err, "Can't new docker client")
 	}
 
-	_, err = cli.ImagePull(ctx, AlluxioFuseImage, dockerapi.ImagePullOptions{})
-	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("Can't pull image(%s)", AlluxioFuseImage))
-	}
-
-	//_, err = cli.ContainerInspect()
-
 	namespacedName := strings.Split(req.GetVolumeId(), "-")
 	glog.Infof("Making container run config with namespace: %s and name: %s", namespacedName[0], namespacedName[1])
-	containerConfig, hostConfig, err := ns.makeContainerRunConfig(namespacedName[0], namespacedName[1])
+	containerName := fmt.Sprintf("%s-%s-fuse", namespacedName[0], namespacedName[1])
+
+	// TODO check existence
+	containerJson, err := cli.ContainerInspect(ctx, containerName)
+	var running bool
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("Can't make container run config"))
+		if !dockerclient.IsErrNotFound(err) {
+			return nil, errors.Wrap(err, fmt.Sprintf("Can't check existence of the container"))
+		}
+
+		_, err = cli.ImagePull(ctx, AlluxioFuseImage, dockerapi.ImagePullOptions{})
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("Can't pull image(%s)", AlluxioFuseImage))
+		}
+
+		//_, err = cli.ContainerInspect()
+
+		containerConfig, hostConfig, err := ns.makeContainerRunConfig(namespacedName[0], namespacedName[1])
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("Can't make container run config"))
+		}
+
+		glog.V(1).Infof(">>>>>> container config, %v", containerConfig)
+
+		// We don't need the response because we identify the container with unique container name
+		_, err = cli.ContainerCreate(ctx, containerConfig, hostConfig, nil, containerName)
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("Can't create container, runConfig: %v", containerConfig))
+		}
+	} else {
+		running = containerJson.State.Running
 	}
 
-	glog.V(1).Infof(">>>>>> container config, %v", containerConfig)
-
-	resp, err := cli.ContainerCreate(ctx, containerConfig, hostConfig, nil, fmt.Sprintf("%s-%s-fuse", namespacedName[0], namespacedName[1]))
-	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("Can't create container, runConfig: %v", containerConfig))
-	}
-
-	if err := cli.ContainerStart(ctx, resp.ID, dockerapi.ContainerStartOptions{}); err != nil {
-		return nil, errors.Wrap(err, "Can't start container")
+	if !running {
+		if err := cli.ContainerStart(ctx, containerName, dockerapi.ContainerStartOptions{}); err != nil {
+			return nil, errors.Wrap(err, "Can't start container")
+		}
 	}
 
 	return &csi.NodeStageVolumeResponse{}, nil
