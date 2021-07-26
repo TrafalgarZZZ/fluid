@@ -197,6 +197,8 @@ func (ns *nodeServer) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 		return nil, errors.Wrap(err, fmt.Sprintf("Can't pull image(%s)", AlluxioFuseImage))
 	}
 
+	//_, err = cli.ContainerInspect()
+
 	namespacedName := strings.Split(req.GetVolumeId(), "-")
 	glog.Infof("Making container run config with namespace: %s and name: %s", namespacedName[0], namespacedName[1])
 	containerConfig, hostConfig, err := ns.makeContainerRunConfig(namespacedName[0], namespacedName[1])
