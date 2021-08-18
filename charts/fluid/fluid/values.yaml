@@ -9,6 +9,8 @@ dataset:
     image: fluidcloudnative/dataset-controller:v0.6.0-48de610
 
 csi:
+  config:
+    hostNetwork: false
   registrar:
     image: registry.aliyuncs.com/acs/csi-node-driver-registrar:v1.2.0
   plugins:
