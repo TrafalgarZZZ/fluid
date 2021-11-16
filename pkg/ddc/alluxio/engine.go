@@ -50,7 +50,7 @@ func Build(id string, ctx cruntime.ReconcileRequestContext) (base.Engine, error)
 		Client:                 ctx.Client,
 		Log:                    ctx.Log,
 		runtimeType:            ctx.RuntimeType,
-		gracefulShutdownLimits: 5,
+		gracefulShutdownLimits: 1,
 		retryShutdown:          0,
 		MetadataSyncDoneCh:     nil,
 		lastCacheHitStates:     nil,
