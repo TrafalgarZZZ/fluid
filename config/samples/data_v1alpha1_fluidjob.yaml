@@ -1,0 +1,6 @@
+apiVersion: data.fluid.io/v1alpha1
+kind: FluidJob
+metadata:
+  name: fluidjob-sample
+spec:
+  # TODO(user): Add fields here

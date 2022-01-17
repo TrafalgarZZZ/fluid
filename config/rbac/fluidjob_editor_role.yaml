@@ -1,0 +1,24 @@
+# permissions for end users to edit fluidjobs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: fluidjob-editor-role
+rules:
+- apiGroups:
+  - data.fluid.io
+  resources:
+  - fluidjobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - data.fluid.io
+  resources:
+  - fluidjobs/status
+  verbs:
+  - get
