@@ -49,6 +49,26 @@ rules:
 - apiGroups:
   - data.fluid.io
   resources:
+  - fluidjobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - data.fluid.io
+  resources:
+  - fluidjobs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - data.fluid.io
+  resources:
   - goosefsruntimes
   verbs:
   - create

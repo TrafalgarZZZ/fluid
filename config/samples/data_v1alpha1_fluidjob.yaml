@@ -3,4 +3,22 @@ kind: FluidJob
 metadata:
   name: fluidjob-sample
 spec:
-  # TODO(user): Add fields here
+  datasetRef:
+    metadata:
+      name: hbase
+    spec:
+      mounts:
+        - mountPoint: https://mirrors.bit.edu.cn/apache/hbase/stable/
+          name: hbase
+  runtimeRef:
+    metadata:
+      name: hbase
+    spec:
+      replicas: 2
+      tieredstore:
+        levels:
+          - mediumtype: MEM
+            path: /dev/shm
+            quota: 2Gi
+            high: "0.95"
+            low: "0.7"

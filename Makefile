@@ -53,6 +53,9 @@ unit-test: generate fmt vet
 
 build: dataset-controller-build alluxioruntime-controller-build jindoruntime-controller-build csi-build webhook-build
 
+scheduler-build: generate fmt vet
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=off go build -o bin/fluid-scheduler -ldflags '${LDFLAGS}' cmd/scheduler/main.go
+
 csi-build: generate fmt vet
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=off  go build -o bin/fluid-csi -ldflags '${LDFLAGS}' cmd/csi/main.go
 

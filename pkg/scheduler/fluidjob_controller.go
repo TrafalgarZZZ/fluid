@@ -13,10 +13,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package scheduler
 
 import (
 	"context"
+	"github.com/fluid-cloudnative/fluid/pkg/utils"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -47,11 +48,30 @@ type FluidJobReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.6.4/pkg/reconcile
 func (r *FluidJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()
-	_ = r.Log.WithValues("fluidjob", req.NamespacedName)
+	log := r.Log.WithValues("fluidjob", req.NamespacedName)
 
-	// TODO(user): your logic here
+	job, err := utils.GetFluidJob(r.Client, req.Name, req.Namespace)
+	if err != nil {
+		log.Error(err, "unable to get fluid job", "namespace", req.Namespace, "name", req.Name)
+		return utils.RequeueIfError(err)
+	}
 
-	return ctrl.Result{}, nil
+	dataset := job.Spec.DatasetRef
+	alluxioRuntime := job.Spec.RuntimeRef
+
+	err = r.Client.Create(context.TODO(), &dataset)
+	if err != nil {
+		log.Error(err, "unable to create dataset", "namespace", dataset.Namespace, "name", dataset.Name)
+		return utils.RequeueIfError(err)
+	}
+
+	err = r.Client.Create(context.TODO(), &alluxioRuntime)
+	if err != nil {
+		log.Error(err, "unable to create alluxio runtime", "namespace", alluxioRuntime.Namespace, "name", alluxioRuntime.Name)
+		return utils.RequeueIfError(err)
+	}
+
+	return utils.NoRequeue()
 }
 
 // SetupWithManager sets up the controller with the Manager.
