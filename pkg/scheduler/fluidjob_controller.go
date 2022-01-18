@@ -17,8 +17,10 @@ package scheduler
 
 import (
 	"context"
+	"fmt"
 	"github.com/fluid-cloudnative/fluid/pkg/scheduler/queue"
 	"github.com/fluid-cloudnative/fluid/pkg/utils"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -27,6 +29,8 @@ import (
 
 	datav1alpha1 "github.com/fluid-cloudnative/fluid/api/v1alpha1"
 )
+
+const finalizerName = "fluid-job-controller-finalizer"
 
 // FluidJobReconciler reconciles a FluidJob object
 type FluidJobReconciler struct {
@@ -54,8 +58,25 @@ func (r *FluidJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	job, err := utils.GetFluidJob(r.Client, req.Name, req.Namespace)
 	if err != nil {
+		if utils.IgnoreNotFound(err) == nil {
+			return utils.NoRequeue()
+		}
 		log.Error(err, "unable to get fluid job", "namespace", req.Namespace, "name", req.Name)
 		return utils.RequeueIfError(err)
+	}
+
+	var object runtime.Object = job
+	objectMeta, err := r.GetRuntimeObjectMeta(object)
+	if err != nil {
+		return utils.RequeueIfError(err)
+	}
+
+	if !objectMeta.GetDeletionTimestamp().IsZero() {
+		return r.ReconcileDeletion(job)
+	}
+
+	if !utils.ContainsString(objectMeta.GetFinalizers(), finalizerName) {
+		return r.AddFinalizerAndRequeue(object, finalizerName)
 	}
 
 	r.Log.Info("Adding job to scheduler queue", "job name", job.Name)
@@ -63,6 +84,54 @@ func (r *FluidJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	r.SchedulerQueue.Enqueue(job)
 
 	return utils.NoRequeue()
+}
+
+func (r *FluidJobReconciler) GetRuntimeObjectMeta(object runtime.Object) (objectMeta metav1.Object, err error) {
+	objectMetaAccessor, isOM := object.(metav1.ObjectMetaAccessor)
+	if !isOM {
+		err = fmt.Errorf("object is not ObjectMetaAccessor")
+		return
+	}
+	objectMeta = objectMetaAccessor.GetObjectMeta()
+	return
+}
+
+func (r *FluidJobReconciler) ReconcileDeletion(job *datav1alpha1.FluidJob) (ctrl.Result, error) {
+	r.Log.Info("before clean up finalizer", "fluidjob", job)
+	objectMeta, err := r.GetRuntimeObjectMeta(job)
+	if err != nil {
+		return utils.RequeueIfError(err)
+	}
+
+	if !objectMeta.GetDeletionTimestamp().IsZero() {
+		finalizers := utils.RemoveString(objectMeta.GetFinalizers(), finalizerName)
+		objectMeta.SetFinalizers(finalizers)
+		r.Log.Info("After clean up finalizer", "job", job)
+		if err := r.Update(context.TODO(), job); err != nil {
+			r.Log.Error(err, "Failed to remove finalzer")
+			return utils.RequeueIfError(err)
+		}
+		r.Log.V(1).Info("Finalizer is removed", "job", job)
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *FluidJobReconciler) AddFinalizerAndRequeue(object runtime.Object, finalizerName string) (ctrl.Result, error) {
+	objectMeta, err := r.GetRuntimeObjectMeta(object)
+	if err != nil {
+		return utils.RequeueIfError(err)
+	}
+
+	prevGeneration := objectMeta.GetGeneration()
+	objectMeta.SetFinalizers(append(objectMeta.GetFinalizers(), finalizerName))
+	if err := r.Update(context.TODO(), object); err != nil {
+		r.Log.Error(err, "Failed to add finalizer", "StatusUpdateError", object)
+		return utils.RequeueIfError(err)
+	}
+
+	currentGeneration := objectMeta.GetGeneration()
+	return utils.RequeueImmediatelyUnlessGenerationChanged(prevGeneration, currentGeneration)
 }
 
 // SetupWithManager sets up the controller with the Manager.

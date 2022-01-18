@@ -34,6 +34,8 @@ type PyTorchJob struct {
 
 	Image string `json:"image"`
 
+	DataClaim string `json:"dataClaim"`
+
 	WorkingDir string `json:"workingDir"`
 }
 
@@ -43,9 +45,9 @@ type FluidJobSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 	JobRef PyTorchJob `json:"jobRef"`
 
-	DatasetRef Dataset `json:"datasetRef"`
+	DatasetRef DatasetSpec `json:"datasetRef"`
 
-	RuntimeRef AlluxioRuntime `json:"runtimeRef"`
+	RuntimeRef AlluxioRuntimeSpec `json:"runtimeRef"`
 }
 
 // FluidJobStatus defines the observed state of FluidJob

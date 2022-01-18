@@ -9,6 +9,7 @@ import (
 	"github.com/go-logr/logr"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -50,16 +51,42 @@ func (s *Scheduler) ScheduleOnce() {
 }
 
 func (s *Scheduler) installDataset(job *v1alpha1.FluidJob) error {
-	dataset := job.Spec.DatasetRef
+	datasetName := job.Spec.JobRef.DataClaim
+	datasetSpec := job.Spec.DatasetRef
 
-	runtime := job.Spec.RuntimeRef
+	dataset := &v1alpha1.Dataset{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "data.fluid.io/v1alpha1",
+			Kind:       "Dataset",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: job.Namespace,
+			Name:      datasetName,
+		},
+		Spec:   datasetSpec,
+		Status: v1alpha1.DatasetStatus{},
+	}
 
-	err := s.Client.Create(context.TODO(), &dataset)
+	runtimeSpec := job.Spec.RuntimeRef
+	runtime := &v1alpha1.AlluxioRuntime{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "data.fluid.io/v1alpha1",
+			Kind:       "AlluxioRuntime",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: job.Namespace,
+			Name:      datasetName,
+		},
+		Spec:   runtimeSpec,
+		Status: v1alpha1.RuntimeStatus{},
+	}
+
+	err := s.Client.Create(context.TODO(), dataset)
 	if err != nil {
 		return err
 	}
 
-	err = s.Client.Create(context.TODO(), &runtime)
+	err = s.Client.Create(context.TODO(), runtime)
 	if err != nil {
 		return err
 	}
@@ -77,7 +104,7 @@ func (s *Scheduler) installJob(job *v1alpha1.FluidJob) error {
 		WorkingDir: jobConfig.WorkingDir,
 	}
 
-	compSpec.DataClaim = job.Spec.DatasetRef.Name
+	compSpec.DataClaim = jobConfig.DataClaim
 
 	value := &PyTorchJobArgs{
 		Metadata: Metadata{
