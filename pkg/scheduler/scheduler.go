@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/fluid-cloudnative/fluid/api/v1alpha1"
+	"github.com/fluid-cloudnative/fluid/pkg/scheduler/queue"
 	"github.com/fluid-cloudnative/fluid/pkg/utils/helm"
 	"github.com/go-logr/logr"
 	"gopkg.in/yaml.v2"
@@ -16,7 +17,7 @@ import (
 
 type Scheduler struct {
 	Client         client.Client
-	SchedulerQueue <-chan *v1alpha1.FluidJob
+	SchedulerQueue *queue.Queue
 	Log            logr.Logger
 }
 
@@ -26,7 +27,12 @@ func (s *Scheduler) Run() {
 }
 
 func (s *Scheduler) ScheduleOnce() {
-	job := <-s.SchedulerQueue
+	length := s.SchedulerQueue.Length()
+	if length == 0 {
+		s.Log.Info("No pending job, skipping scheduling")
+		return
+	}
+	job := s.SchedulerQueue.GetOne()
 	s.Log.Info("Scheduling job", "job name", job.Name)
 
 	// todo check resource availble

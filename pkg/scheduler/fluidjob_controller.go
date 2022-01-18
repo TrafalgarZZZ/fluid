@@ -17,6 +17,7 @@ package scheduler
 
 import (
 	"context"
+	"github.com/fluid-cloudnative/fluid/pkg/scheduler/queue"
 	"github.com/fluid-cloudnative/fluid/pkg/utils"
 
 	"github.com/go-logr/logr"
@@ -32,7 +33,7 @@ type FluidJobReconciler struct {
 	client.Client
 	Log            logr.Logger
 	Scheme         *runtime.Scheme
-	SchedulerQueue chan<- *datav1alpha1.FluidJob
+	SchedulerQueue *queue.Queue
 }
 
 //+kubebuilder:rbac:groups=data.fluid.io,resources=fluidjobs,verbs=get;list;watch;create;update;patch;delete
@@ -58,7 +59,8 @@ func (r *FluidJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	r.Log.Info("Adding job to scheduler queue", "job name", job.Name)
-	r.SchedulerQueue <- job
+	//r.SchedulerQueue <- job
+	r.SchedulerQueue.Enqueue(job)
 
 	return utils.NoRequeue()
 }

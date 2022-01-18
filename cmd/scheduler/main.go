@@ -5,6 +5,7 @@ import (
 	"github.com/fluid-cloudnative/fluid"
 	datav1alpha1 "github.com/fluid-cloudnative/fluid/api/v1alpha1"
 	"github.com/fluid-cloudnative/fluid/pkg/scheduler"
+	"github.com/fluid-cloudnative/fluid/pkg/scheduler/queue"
 	"github.com/fluid-cloudnative/fluid/pkg/utils/helm"
 	"github.com/spf13/cobra"
 	zapOpt "go.uber.org/zap"
@@ -130,7 +131,8 @@ func handle() {
 		os.Exit(1)
 	}
 
-	schedulerQueue := make(chan *datav1alpha1.FluidJob, 100)
+	//schedulerQueue := make(chan *datav1alpha1.FluidJob, 100)
+	schedulerQueue := queue.NewQueue(&queue.FIFOStrategy{})
 
 	reconciler := &scheduler.FluidJobReconciler{
 		Client:         mgr.GetClient(),
@@ -157,10 +159,6 @@ func handle() {
 		setupLog.Error(err, "problem when starting fluid scheduler")
 		os.Exit(1)
 	}
-}
-
-func ScheduleOnce(job datav1alpha1.FluidJob) {
-
 }
 
 func main() {
