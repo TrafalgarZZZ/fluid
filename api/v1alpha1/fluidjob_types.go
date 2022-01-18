@@ -16,24 +16,36 @@ limitations under the License.
 package v1alpha1
 
 import (
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+type PyTorchJob struct {
+	MasterReplicas int `json:"masterReplicas"`
+
+	WorkerReplicas int `json:"workerReplicas"`
+
+	Command []string `json:"command"`
+
+	Env []v1.EnvVar `json:"env"`
+
+	Image string `json:"image"`
+
+	WorkingDir string `json:"workingDir"`
+}
+
 // FluidJobSpec defines the desired state of FluidJob
 type FluidJobSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	JobRef PyTorchJob `json:"jobRef"`
 
 	DatasetRef Dataset `json:"datasetRef"`
 
 	RuntimeRef AlluxioRuntime `json:"runtimeRef"`
-}
-
-type Master struct {
-	Replicas int `json:"replicas"`
 }
 
 // FluidJobStatus defines the observed state of FluidJob
@@ -44,6 +56,7 @@ type FluidJobStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+// +genclient
 
 // FluidJob is the Schema for the fluidjobs API
 type FluidJob struct {

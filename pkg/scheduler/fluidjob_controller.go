@@ -30,8 +30,9 @@ import (
 // FluidJobReconciler reconciles a FluidJob object
 type FluidJobReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log            logr.Logger
+	Scheme         *runtime.Scheme
+	SchedulerQueue chan<- *datav1alpha1.FluidJob
 }
 
 //+kubebuilder:rbac:groups=data.fluid.io,resources=fluidjobs,verbs=get;list;watch;create;update;patch;delete
@@ -56,20 +57,8 @@ func (r *FluidJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return utils.RequeueIfError(err)
 	}
 
-	dataset := job.Spec.DatasetRef
-	alluxioRuntime := job.Spec.RuntimeRef
-
-	err = r.Client.Create(context.TODO(), &dataset)
-	if err != nil {
-		log.Error(err, "unable to create dataset", "namespace", dataset.Namespace, "name", dataset.Name)
-		return utils.RequeueIfError(err)
-	}
-
-	err = r.Client.Create(context.TODO(), &alluxioRuntime)
-	if err != nil {
-		log.Error(err, "unable to create alluxio runtime", "namespace", alluxioRuntime.Namespace, "name", alluxioRuntime.Name)
-		return utils.RequeueIfError(err)
-	}
+	r.Log.Info("Adding job to scheduler queue", "job name", job.Name)
+	r.SchedulerQueue <- job
 
 	return utils.NoRequeue()
 }
