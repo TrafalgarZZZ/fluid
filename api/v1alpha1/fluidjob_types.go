@@ -32,6 +32,10 @@ type FluidJobSpec struct {
 	RuntimeRef AlluxioRuntime `json:"runtimeRef"`
 }
 
+type Master struct {
+	Replicas int `json:"replicas"`
+}
+
 // FluidJobStatus defines the observed state of FluidJob
 type FluidJobStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster

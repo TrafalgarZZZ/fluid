@@ -1,0 +1,98 @@
+apiVersion: kubeflow.org/v1
+kind: PyTorchJob
+metadata:
+  name: {{ .Values.metadata.name }}
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  cleanPodPolicy: None
+  pytorchReplicaSpecs:
+    Master:
+      replicas: {{ .Values.master.replicas }}
+      restartPolicy: Never
+      template:
+        metadata:
+          name: {{ .Values.metadata.name }}
+        spec:
+          containers:
+          {{- if .Values.master.command }}
+            - command:
+            {{- range .Values.master.command }}
+                - {{ . | quote }}
+            {{- end }}
+          {{- end -}}
+          {{- if .Values.master.env }}
+              env:
+              {{- range .Values.master.env }}
+                - name: {{ .name | quote}}
+                  value: {{ .value | quote }}
+              {{- end }}
+          {{- end }}
+              image: {{ .Values.master.image }}
+              imagePullPolicy: Always
+              name: pytorch
+              resources:
+                limits:
+                  nvidia.com/gpu: "2"
+                requests:
+                  nvidia.com/gpu: "2"
+              volumeMounts:
+                - mountPath: /data
+                  name: dataclaim
+                - mountPath: /dev/shm
+                  name: dshm
+              workingDir: {{ .Values.master.workingDir }}
+          hostIPC: true
+          hostPID: true
+          volumes:
+            - name: dataclaim
+              persistentVolumeClaim:
+                claimName: {{ .Values.master.dataClaim }}
+            - name: dshm
+              emptyDir:
+                medium: Memory
+                sizeLimit: 2Gi
+    Worker:
+      replicas: {{ .Values.worker.replicas }}
+      restartPolicy: Never
+      template:
+        metadata:
+          name: {{ .Values.metadata.name }}
+        spec:
+          containers:
+              {{- if .Values.worker.command }}
+            - command:
+                {{- range .Values.worker.command }}
+                - {{ . | quote }}
+                {{- end }}
+              {{- end -}}
+              {{- if .Values.worker.env }}
+              env:
+                  {{- range .Values.worker.env }}
+                - name: {{ .name | quote}}
+                  value: {{ .value | quote }}
+                  {{- end }}
+              {{- end }}
+              image: {{ .Values.worker.image }}
+              imagePullPolicy: Always
+              name: pytorch
+              resources:
+                limits:
+                  nvidia.com/gpu: "2"
+                requests:
+                  nvidia.com/gpu: "2"
+              volumeMounts:
+                - mountPath: /data
+                  name: dataclaim
+                - mountPath: /dev/shm
+                  name: dshm
+              workingDir: {{ .Values.worker.workingDir }}
+          hostIPC: true
+          hostPID: true
+          volumes:
+            - name: dataclaim
+              persistentVolumeClaim:
+                claimName: {{ .Values.worker.dataClaim }}
+            - name: dshm
+              emptyDir:
+                medium: Memory
+                sizeLimit: 2Gi

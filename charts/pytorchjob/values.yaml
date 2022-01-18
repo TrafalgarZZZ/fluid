@@ -1,0 +1,30 @@
+# Default values for pytorchjob.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+metadata:
+  name: xxx
+  namespace: default
+
+master:
+  replicas: 1
+  command: ["sh", "-c", "export PYTHONUNBUFFERED=1 && bash train.sh"]
+  env:
+    - name: BATCH_SIZE
+      value: "128"
+  image: "registry-vpc.cn-beijing.aliyuncs.com/fluid-namespace/pytorch:remote-imagenet-202111162029"
+  dataClaim: "hbase"
+  workingDir: "/scripts/imagenet"
+
+worker:
+  replicas: 3
+  command: ["sh", "-c", "export PYTHONUNBUFFERED=1 && bash train.sh"]
+  env:
+    - name: BATCH_SIZE
+      value: "128"
+    - name: EPOCH_NUM
+      value: "1"
+  image: "registry-vpc.cn-beijing.aliyuncs.com/fluid-namespace/pytorch:remote-imagenet-202111162029"
+  dataClaim: "hbase"
+  workingDir: "/scripts/imagenet"
+
