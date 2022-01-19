@@ -33,10 +33,10 @@ func (s *Scheduler) ScheduleOnce() {
 		s.Log.Info("No pending job, skipping scheduling")
 		return
 	}
+	// todo check resource availble
+
 	job := s.SchedulerQueue.GetOne()
 	s.Log.Info("Scheduling job", "job name", job.Name)
-
-	// todo check resource availble
 
 	// FIFO Strategy
 	//err := s.installDataset(job)

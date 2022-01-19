@@ -41,7 +41,9 @@ func (q *Queue) Enqueue(job *v1alpha1.FluidJob) {
 }
 
 func (q *Queue) GetOne() *v1alpha1.FluidJob {
-	q.strategy.Sort(q.items)
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
+	q.items = q.strategy.Sort(q.items)
 	ret := q.items[0].Job
 	q.items = q.items[1:]
 	return ret

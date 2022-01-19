@@ -1,11 +1,14 @@
 package queue
 
 import (
+	"fmt"
 	"github.com/docker/go-units"
 	"github.com/fluid-cloudnative/fluid/api/v1alpha1"
 	"github.com/fluid-cloudnative/fluid/pkg/common"
 	"github.com/fluid-cloudnative/fluid/pkg/ddc/alluxio"
 	"github.com/fluid-cloudnative/fluid/pkg/utils"
+	"github.com/go-logr/logr"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sort"
 )
@@ -14,10 +17,14 @@ var _ SortStrategy = &DatasetAwareStrategy{}
 
 type DatasetAwareStrategy struct {
 	Client client.Client
+	Log    logr.Logger
 }
 
 func NewDatasetAwareStrategy(client client.Client) *DatasetAwareStrategy {
-	return &DatasetAwareStrategy{Client: client}
+	return &DatasetAwareStrategy{
+		Client: client,
+		Log:    ctrl.Log.WithName("DatasetAwareStrategy"),
+	}
 }
 
 type DatasetStatus struct {
@@ -37,7 +44,11 @@ func (y yajobs) Len() int {
 }
 
 func (y yajobs) Less(i, j int) bool {
-	return y[i].Score < y[j].Score
+	if y[i].Score == y[j].Score {
+		return y[i].Job.EnqueueTimestamp.Before(y[j].Job.EnqueueTimestamp)
+	} else {
+		return y[i].Score > y[j].Score
+	}
 }
 
 func (y yajobs) Swap(i, j int) {
@@ -46,14 +57,17 @@ func (y yajobs) Swap(i, j int) {
 
 func (d *DatasetAwareStrategy) Sort(items []JobInQueue) []JobInQueue {
 	var toSort []JobWithScore
-	for _, item := range items {
-		toSort = append(toSort, d.score(&item))
+	for idx, _ := range items {
+		itemScore := d.score(&items[idx])
+		toSort = append(toSort, itemScore)
+		//d.Log.Info("Scoring job", "job name", itemScore.Job.Job.Name, "score", itemScore.Score)
 	}
 
 	sort.Sort(yajobs(toSort))
 
 	var toRet []JobInQueue
 	for _, sortedItem := range toSort {
+		d.Log.Info(fmt.Sprintf("score: %f, job name: %s", sortedItem.Score, sortedItem.Job.Job.Name))
 		toRet = append(toRet, *sortedItem.Job)
 	}
 
@@ -92,6 +106,7 @@ func (d *DatasetAwareStrategy) getDatasetStatusByJob(job *v1alpha1.FluidJob) (Da
 
 func (d *DatasetAwareStrategy) score(job *JobInQueue) JobWithScore {
 	status, _ := d.getDatasetStatusByJob(job.Job)
+	d.Log.Info("Getting dataset status for job", "job name", job.Job.Name, "status", status)
 
 	if status.TotalSize == 0 || status.CachedSize == 0 {
 		return JobWithScore{
@@ -101,7 +116,7 @@ func (d *DatasetAwareStrategy) score(job *JobInQueue) JobWithScore {
 	} else {
 		return JobWithScore{
 			Job:   job,
-			Score: float64(status.CachedSize * 1.0 / status.TotalSize),
+			Score: float64(status.CachedSize) / float64(status.TotalSize),
 		}
 	}
 }
