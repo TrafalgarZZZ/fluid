@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"github.com/fluid-cloudnative/fluid/pkg/scheduler/queue"
 	"github.com/fluid-cloudnative/fluid/pkg/utils"
+	"github.com/fluid-cloudnative/fluid/pkg/utils/helm"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/go-logr/logr"
@@ -97,6 +98,20 @@ func (r *FluidJobReconciler) GetRuntimeObjectMeta(object runtime.Object) (object
 }
 
 func (r *FluidJobReconciler) ReconcileDeletion(job *datav1alpha1.FluidJob) (ctrl.Result, error) {
+	exists, err := helm.CheckRelease(job.Name, job.Namespace)
+	if err != nil {
+		r.Log.Error(err, "can't check release for job", "job name", job.Name)
+		return utils.RequeueIfError(err)
+	}
+
+	if exists {
+		err = helm.DeleteRelease(job.Name, job.Namespace)
+		if err != nil {
+			r.Log.Error(err, "can't delete relase for job", "job name", job.Name)
+			return utils.RequeueIfError(err)
+		}
+	}
+
 	r.Log.Info("before clean up finalizer", "fluidjob", job)
 	objectMeta, err := r.GetRuntimeObjectMeta(job)
 	if err != nil {

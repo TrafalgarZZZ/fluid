@@ -132,7 +132,8 @@ func handle() {
 	}
 
 	//schedulerQueue := make(chan *datav1alpha1.FluidJob, 100)
-	schedulerQueue := queue.NewQueue(&queue.FIFOStrategy{})
+	//schedulerQueue := queue.NewQueue(&queue.FIFOStrategy{})
+	schedulerQueue := queue.NewQueue(queue.NewDatasetAwareStrategy(mgr.GetClient()))
 
 	reconciler := &scheduler.FluidJobReconciler{
 		Client:         mgr.GetClient(),

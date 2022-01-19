@@ -39,15 +39,15 @@ func (s *Scheduler) ScheduleOnce() {
 	// todo check resource availble
 
 	// FIFO Strategy
-	err := s.installDataset(job)
-	if err != nil {
-		s.Log.Error(err, "can't install dataset", "job namespace", job.Namespace, "job name", job.Name)
-	}
-
-	err = s.installJob(job)
-	if err != nil {
-		s.Log.Error(err, "can't install job", "job namespace", job.Namespace, "job name", job.Name)
-	}
+	//err := s.installDataset(job)
+	//if err != nil {
+	//	s.Log.Error(err, "can't install dataset", "job namespace", job.Namespace, "job name", job.Name)
+	//}
+	//
+	//err = s.installJob(job)
+	//if err != nil {
+	//	s.Log.Error(err, "can't install job", "job namespace", job.Namespace, "job name", job.Name)
+	//}
 }
 
 func (s *Scheduler) installDataset(job *v1alpha1.FluidJob) error {
