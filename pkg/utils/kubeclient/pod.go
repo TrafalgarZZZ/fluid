@@ -70,6 +70,22 @@ func GetPodByName(client client.Client, name, namespace string) (pod *v1.Pod, er
 	return
 }
 
+// GetPodByName gets pod with given name and namespace of the pod.
+func GetPod(client client.Client, name, namespace string) (pod *v1.Pod, err error) {
+	key := types.NamespacedName{
+		Name:      name,
+		Namespace: namespace,
+	}
+
+	pod = &v1.Pod{}
+
+	if err = client.Get(context.TODO(), key, pod); err != nil {
+		return nil, err
+	}
+
+	return
+}
+
 // GetPVCNamesFromPod get names of pvc mounted by Pod
 func GetPVCNamesFromPod(pod *v1.Pod) (pvcNames []string) {
 	for _, volume := range pod.Spec.Volumes {

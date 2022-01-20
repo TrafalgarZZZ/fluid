@@ -146,6 +146,7 @@ func handle() {
 		Client:         mgr.GetClient(),
 		SchedulerQueue: schedulerQueue,
 		Log:            ctrl.Log.WithName("fluidjob scheduler"),
+		RunningJobs:    map[string]*datav1alpha1.FluidJob{},
 	}
 
 	sched.Run()

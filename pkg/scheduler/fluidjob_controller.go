@@ -22,6 +22,7 @@ import (
 	"github.com/fluid-cloudnative/fluid/pkg/utils"
 	"github.com/fluid-cloudnative/fluid/pkg/utils/helm"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/util/retry"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -80,9 +81,33 @@ func (r *FluidJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return r.AddFinalizerAndRequeue(object, finalizerName)
 	}
 
-	r.Log.Info("Adding job to scheduler queue", "job name", job.Name)
+	if job.Status.Phase == datav1alpha1.PhaseNone {
+		r.Log.Info("Adding job to scheduler queue", "job name", job.Name)
+		r.SchedulerQueue.Enqueue(job)
+
+		err = retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+			j, err := utils.GetFluidJob(r.Client, job.Name, job.Namespace)
+			if err != nil {
+				return err
+			}
+
+			j.Status.Phase = datav1alpha1.PhasePending
+			if err = r.Client.Status().Update(context.TODO(), j); err != nil {
+				return err
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			r.Log.Info("Inconsistent thing happened: Job enqueued but cannot change its status", "job name", job.Name)
+		}
+
+	} else {
+		r.Log.Info("Ignoring job because it's already launched or finished or in queue", "job name", job.Name)
+	}
+
 	//r.SchedulerQueue <- job
-	r.SchedulerQueue.Enqueue(job)
 
 	return utils.NoRequeue()
 }

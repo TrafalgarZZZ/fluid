@@ -50,10 +50,20 @@ type FluidJobSpec struct {
 	RuntimeRef AlluxioRuntimeSpec `json:"runtimeRef"`
 }
 
+type JobPhase string
+
+const (
+	PhaseNone     JobPhase = ""
+	PhasePending  JobPhase = "Pending"
+	PhaseRunning  JobPhase = "Running"
+	PhaseFinished JobPhase = "Finished"
+)
+
 // FluidJobStatus defines the observed state of FluidJob
 type FluidJobStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	Phase JobPhase `json:"phase"`
 }
 
 //+kubebuilder:object:root=true
