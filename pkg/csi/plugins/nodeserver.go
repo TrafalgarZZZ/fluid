@@ -313,11 +313,13 @@ func (ns *nodeServer) getRuntimeNamespacedName(volumeContext map[string]string, 
 		runtimeName, nameFound := volumeContext[common.VolumeAttrName]
 		runtimeNamespace, nsFound := volumeContext[common.VolumeAttrNamespace]
 		if nameFound && nsFound {
+			glog.Infof("Found runtime namespace %s and name %s from volume context", runtimeNamespace, runtimeName)
 			return runtimeNamespace, runtimeName, nil
 		}
 	}
 
 	// Fallback: query API Server to get namespaced name
+	glog.Infof("Get runtime namespace and name from api server given volumeId %s", volumeId)
 	return volume.GetNamespacedNameByVolumeId(ns.apiReader, volumeId)
 }
 
