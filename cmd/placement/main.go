@@ -17,17 +17,23 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"github.com/fluid-cloudnative/fluid"
 	datav1alpha1 "github.com/fluid-cloudnative/fluid/api/v1alpha1"
 	"github.com/fluid-cloudnative/fluid/pkg/placement"
 	"github.com/spf13/cobra"
+	zapOpt "go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"time"
 )
 
 var (
@@ -38,15 +44,23 @@ var (
 )
 
 var cmd = &cobra.Command{
-	Use:   "fluid-scheduler-placement",
+	Use:   "placement",
 	Short: "Scheduler placement for Fluid",
 }
 
-var startCmd = &cobra.Command{
-	Use:   "start",
-	Short: "start fluid-scheduler-placement in Kubernetes",
+var planCmd = &cobra.Command{
+	Use:   "plan",
+	Short: "plan once for data and job placements",
 	Run: func(cmd *cobra.Command, args []string) {
-		handle()
+		plan()
+	},
+}
+
+var nodeResourceSummaryCmd = &cobra.Command{
+	Use:   "node-summary",
+	Short: "Get node available resource memory",
+	Run: func(cmd *cobra.Command, args []string) {
+		getNodeInfo()
 	},
 }
 
@@ -59,37 +73,18 @@ func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = datav1alpha1.AddToScheme(scheme)
 
-	startCmd.Flags().BoolVarP(&development, "development", "", true, "Enable development mode for fluid controller.")
-	startCmd.Flags().BoolVar(&short, "short", false, "print just the short version info")
+	planCmd.Flags().BoolVarP(&development, "development", "", true, "Enable development mode for fluid controller.")
+	planCmd.Flags().BoolVar(&short, "short", false, "print just the short version info")
 
-	cmd.AddCommand(startCmd)
+	cmd.AddCommand(planCmd)
+	cmd.AddCommand(nodeResourceSummaryCmd)
 
 	//flag.Parse()
 }
 
-func handle() {
+func plan() {
 	fluid.LogVersion()
 
-	//ctrl.SetLogger(zap.New(func(o *zap.Options) {
-	//	o.Development = development
-	//}, func(o *zap.Options) {
-	//	o.ZapOpts = append(o.ZapOpts, zapOpt.AddCaller())
-	//}, func(o *zap.Options) {
-	//	if !development {
-	//		encCfg := zapOpt.NewProductionEncoderConfig()
-	//		encCfg.EncodeLevel = zapcore.CapitalLevelEncoder
-	//		encCfg.EncodeTime = zapcore.ISO8601TimeEncoder
-	//		o.Encoder = zapcore.NewConsoleEncoder(encCfg)
-	//	}
-	//}))
-
-	//mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-	//	Scheme: scheme,
-	//})
-	//if err != nil {
-	//	setupLog.Error(err, "unable to start alluxioruntime manager")
-	//	os.Exit(1)
-	//}
 	nodeResList := []placement.NodeRes{}
 	for i := 0; i < 6; i++ {
 		nodeResList = append(nodeResList, placement.NodeRes{
@@ -130,22 +125,95 @@ func handle() {
 	planner := placement.NewVirtualPlanner(jobResList, nodeResList)
 
 	planner.PlanOnce()
+}
 
-	//if err = mgr.Add(planner); err != nil {
-	//	panic(err)
-	//}
-	//
-	//setupLog.Info("starting fluid scheduler placement planner")
-	//if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-	//	setupLog.Error(err, "problem when starting fluid scheduler")
-	//	os.Exit(1)
-	//}
+func getNodeInfo() {
+	// Initialize Node capacity.
+	// TODO: should be input from some file to indicate the capacity for each node
+	nodeCapacity := map[string]resource.Quantity{}
+
+	nodeCapacity["cn-beijing.172.16.2.247"] = resource.MustParse("200Gi")
+	nodeCapacity["cn-beijing.172.16.3.99"] = resource.MustParse("200Gi")
+
+	// initialize kubernetes client
+	ctrl.SetLogger(zap.New(func(o *zap.Options) {
+		o.Development = development
+	}, func(o *zap.Options) {
+		o.ZapOpts = append(o.ZapOpts, zapOpt.AddCaller())
+	}, func(o *zap.Options) {
+		if !development {
+			encCfg := zapOpt.NewProductionEncoderConfig()
+			encCfg.EncodeLevel = zapcore.CapitalLevelEncoder
+			encCfg.EncodeTime = zapcore.ISO8601TimeEncoder
+			o.Encoder = zapcore.NewConsoleEncoder(encCfg)
+		}
+	}))
+
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+		Scheme: scheme,
+	})
+
+	if err != nil {
+		panic(err)
+	}
+
+	go func() {
+		if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+			setupLog.Error(err, "problem when starting fluid scheduler")
+			os.Exit(1)
+		}
+	}()
+
+	// Wait 3 seconds to let manager fully start.
+	time.Sleep(3 * time.Second)
+	client := mgr.GetClient()
+
+	// List all pods in Kubernetes.
+	pl := &v1.PodList{}
+	if err = client.List(context.TODO(), pl); err != nil {
+		panic(err)
+	}
+
+	pods := pl.Items
+	for _, pod := range pods {
+		// Only check pods in default namespace
+		if pod.Namespace != "default" {
+			continue
+		}
+
+		// Only calculate pods with the "experiment" label
+		if _, ok := pod.ObjectMeta.Labels["experiment"]; !ok {
+			continue
+		}
+
+		// Completed or Failed pods do not count in the calculation
+		if pod.Status.Phase != v1.PodRunning {
+			continue
+		}
+
+		// Only check pods that already scheduled to some node
+		if len(pod.Spec.NodeName) == 0 {
+			continue
+		}
+
+		nodeName := pod.Spec.NodeName
+		if avail, ok := nodeCapacity[nodeName]; ok {
+			for _, c := range pod.Spec.Containers {
+				reqMem := c.Resources.Requests[v1.ResourceMemory]
+				avail.Sub(reqMem)
+				nodeCapacity[nodeName] = avail
+			}
+		}
+	}
+
+	for k, v := range nodeCapacity {
+		fmt.Printf("node %s has available memory resource %s\n", k, v.String())
+	}
 }
 
 func main() {
-	//if err := cmd.Execute(); err != nil {
-	//	fmt.Fprintf(os.Stderr, "%s", err.Error())
-	//	os.Exit(1)
-	//}
-	handle()
+	if err := cmd.Execute(); err != nil {
+		fmt.Fprintf(os.Stderr, "%s", err.Error())
+		os.Exit(1)
+	}
 }
