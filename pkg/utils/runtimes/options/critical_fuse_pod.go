@@ -38,10 +38,10 @@ func setCriticalFusePodOption() {
 		}
 	}
 	// log.Printf("Using %s = %v\n", EnvCriticalFusePodEnabled, criticalFusePodEnabled)
-	log.Info("setCriticalFusePodOption", "EnvCriticalFusePodEnabled",
-		EnvCriticalFusePodEnabled,
-		"criticalFusePodEnabled",
-		criticalFusePodEnabled)
+	//log.Info("setCriticalFusePodOption", "EnvCriticalFusePodEnabled",
+	//	EnvCriticalFusePodEnabled,
+	//	"criticalFusePodEnabled",
+	//	criticalFusePodEnabled)
 }
 
 func CriticalFusePodEnabled() bool {

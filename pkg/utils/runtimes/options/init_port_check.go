@@ -38,10 +38,10 @@ func setPortCheckOption() {
 		}
 	}
 	// log.Printf("Using %s = %v\n", EnvPortCheckEnabled, initPortCheckEnabled)
-	log.Info("setPortCheckOption", "EnvPortCheckEnabled",
-		EnvPortCheckEnabled,
-		"initPortCheckEnabled",
-		initPortCheckEnabled)
+	//log.Info("setPortCheckOption", "EnvPortCheckEnabled",
+	//	EnvPortCheckEnabled,
+	//	"initPortCheckEnabled",
+	//	initPortCheckEnabled)
 }
 
 func PortCheckEnabled() bool {

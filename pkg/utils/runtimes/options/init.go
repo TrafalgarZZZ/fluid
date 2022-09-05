@@ -16,15 +16,9 @@ limitations under the License.
 
 package options
 
-import (
-	"github.com/go-logr/logr"
-
-	ctrl "sigs.k8s.io/controller-runtime"
-)
-
-var (
-	log logr.Logger = ctrl.Log.WithName("options")
-)
+//var (
+//	log logr.Logger = ctrl.Log.WithName("options")
+//)
 
 func init() {
 	setPortCheckOption()
