@@ -18,13 +18,22 @@ package mutating
 
 import (
 	"github.com/fluid-cloudnative/fluid/pkg/common"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // +kubebuilder:webhook:path=/mutate-fluid-io-v1alpha1-schedulepod,mutating=true,failurePolicy=fail,sideEffects=None,admissionReviewVersions=v1;v1beta1,groups="",resources=pods,verbs=create;update,versions=v1,name=schedulepod.fluid.io
 
 var (
 	// HandlerMap contains admission webhook handlers
-	HandlerMap = map[string]common.AdmissionHandler{
+	HandlerMap = map[string]AdmissionHandler{
 		common.WebhookSchedulePodPath: &CreateUpdatePodForSchedulingHandler{},
 	}
 )
+
+// AdmissionHandler wrappers admission.Handler, but adding client-go capablities
+type AdmissionHandler interface {
+	admission.Handler
+
+	Setup(client client.Client)
+}

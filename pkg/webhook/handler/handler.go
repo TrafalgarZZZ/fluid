@@ -17,9 +17,9 @@ limitations under the License.
 package handler
 
 import (
+	"github.com/fluid-cloudnative/fluid/pkg/webhook/scheduler/mutating"
 	"os"
 
-	"github.com/fluid-cloudnative/fluid/pkg/common"
 	"k8s.io/apimachinery/pkg/util/sets"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -32,15 +32,15 @@ type GateFunc func() (enabled bool)
 
 var (
 	// HandlerMap contains all admission webhook handlers.
-	HandlerMap   = map[string]common.AdmissionHandler{}
+	HandlerMap   = map[string]mutating.AdmissionHandler{}
 	handlerGates = map[string]GateFunc{}
 )
 
-func addHandlers(m map[string]common.AdmissionHandler) {
+func addHandlers(m map[string]mutating.AdmissionHandler) {
 	addHandlersWithGate(m, nil)
 }
 
-func addHandlersWithGate(m map[string]common.AdmissionHandler, fn GateFunc) {
+func addHandlersWithGate(m map[string]mutating.AdmissionHandler, fn GateFunc) {
 	for path, handler := range m {
 		if len(path) == 0 {
 			setupLog.Info("Skip handler with empty path.", "handler", handler)

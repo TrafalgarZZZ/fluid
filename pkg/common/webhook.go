@@ -16,11 +16,6 @@ limitations under the License.
 
 package common
 
-import (
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
-)
-
 const (
 	WebhookName            = "fluid-pod-admission-webhook"
 	WebhookServiceName     = "fluid-pod-admission-webhook"
@@ -28,10 +23,3 @@ const (
 
 	CertSecretName = "fluid-webhook-certs"
 )
-
-// AdmissionHandler wrappers admission.Handler, but adding client-go capablities
-type AdmissionHandler interface {
-	admission.Handler
-
-	Setup(client client.Client)
-}
