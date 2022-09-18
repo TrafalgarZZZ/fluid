@@ -22,7 +22,7 @@ Fluid is an open source Kubernetes-native Distributed Dataset Orchestrator and A
 # Fluid
 English | [简体中文](./README-zh_CN.md)
 
-|![notification](http://kubeflow.oss-cn-beijing.aliyuncs.com/Static/bell-outline-badge.svg) What is NEW!|
+|![notification](http://kubeflow.oss-cn-beijing.aliyuncs.com/Static/bell-outline-badge.svg) What is NEW!xxx|
 |------------------|
 |Sep. 03th, 2022. Fluid v0.8.0 is **RELEASED**! It provides various new features, such as Lifecycle management of Serverless Job with fluid sidecar support, Enable runtime controller on demand, Automatic CRD upgrader, Restrict pod scheduling to dataset cache nodes, Arm64 support with JuicefsRuntime, GCS support for Alluxio Runtime, and so on. Please check the [CHANGELOG](CHANGELOG.md) for details.|
 |Mar. 02th, 2022. Fluid v0.7.0 is **RELEASED**! It provides various new features, such as Fuse sidecar auto injection for all the runtimes (suitable for serverless environment), Fuse auto recovery and upgrade, lazy fuse mount mode, support JuiceFS cache runtime and so on. Please check the [CHANGELOG](CHANGELOG.md) for details.|
