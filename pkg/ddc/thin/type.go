@@ -42,7 +42,7 @@ type Worker struct {
 	Resources       common.Resources       `yaml:"resources,omitempty"`
 	NodeSelector    map[string]string      `yaml:"nodeSelector,omitempty"`
 	HostNetwork     bool                   `yaml:"hostNetwork,omitempty"`
-	Envs            []corev1.EnvVar        `yaml:"envs,omitempty"`
+	Envs            []corev1.EnvVar        `json:"envs,omitempty"`
 	Ports           []corev1.ContainerPort `yaml:"ports,omitempty"`
 	Volumes         []corev1.Volume        `yaml:"volumes,omitempty"`
 	VolumeMounts    []corev1.VolumeMount   `yaml:"volumeMounts,omitempty"`
