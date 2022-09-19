@@ -94,6 +94,9 @@ func isMemberOf(sts *appsv1.StatefulSet, pod *v1.Pod) bool {
 
 // GetPhaseFromStatefulset gets the phase from statefulset
 func GetPhaseFromStatefulset(replicas int32, sts appsv1.StatefulSet) (phase datav1alpha1.RuntimePhase) {
+	if *sts.Spec.Replicas == 0 {
+		return datav1alpha1.RuntimePhaseReady
+	}
 	if sts.Status.ReadyReplicas > 0 {
 		if replicas == sts.Status.ReadyReplicas {
 			phase = datav1alpha1.RuntimePhaseReady
