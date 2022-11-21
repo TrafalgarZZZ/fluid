@@ -59,7 +59,7 @@ English | [简体中文](./README-zh_CN.md)
 
 ## Key Concepts
 
-**Dataset**: A DataSet is a set of data logically related that can be used by computing engines, such as Spark for big data analytics and TensorFlow for AI applications. Intelligently leveraging data often creates core industry values. Managing DataSets may require features in different dimensions, such as security, version management and data acceleration. We hope to start with data acceleration to support the management of datasets. 
+**Dataset**: A Dataset is a set of data logically related that can be used by computing engines, such as Spark for big data analytics and TensorFlow for AI applications. Intelligently leveraging data often creates core industry values. Managing DataSets may require features in different dimensions, such as security, version management and data acceleration. We hope to start with data acceleration to support the management of datasets. 
 
 **Runtime**: The execution engine that enforces dataset security, provides version management and data acceleration capabilities. The Runtime defines a set of interfaces to mangage DataSets in their life cycle, so the management and acceleration of datasets can be implemented behind these interfaces.
 
