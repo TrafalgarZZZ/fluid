@@ -18,13 +18,15 @@ package fuse
 
 import (
 	"context"
+	"strings"
+
 	"github.com/fluid-cloudnative/fluid/pkg/common"
 	"github.com/fluid-cloudnative/fluid/pkg/ddc/base"
 	"github.com/fluid-cloudnative/fluid/pkg/scripts/poststart"
 	"github.com/fluid-cloudnative/fluid/pkg/utils"
 	"github.com/fluid-cloudnative/fluid/pkg/utils/kubeclient"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	"strings"
 )
 
 func (s *Injector) injectCheckMountReadyScript(pod common.FluidObject, runtimeInfos map[string]base.RuntimeInfoInterface) error {
@@ -140,14 +142,14 @@ func (s *Injector) ensureScriptConfigMapExists(namespace string) (*poststart.Scr
 	cm := appScriptGen.BuildConfigmap()
 	cmFound, err := kubeclient.IsConfigMapExist(s.client, cm.Name, cm.Namespace)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to check if config map \"%s/%s\" exists", cm.Namespace, cm.Name)
 	}
 
 	if !cmFound {
 		err = s.client.Create(context.TODO(), cm)
 		if err != nil {
 			if otherErr := utils.IgnoreAlreadyExists(err); otherErr != nil {
-				return nil, err
+				return nil, errors.Wrapf(err, "failed to create config map \"%s/%s\"", cm.Namespace, cm.Name)
 			}
 		}
 	}
