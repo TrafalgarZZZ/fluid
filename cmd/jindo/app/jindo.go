@@ -123,6 +123,8 @@ func handle() {
 		os.Exit(1)
 	}
 
+	mgr.AddMetricsExtraHandler()
+
 	pr, err := net.ParsePortRange(portRange)
 	if err != nil {
 		setupLog.Error(err, "can't parse port range. Port range must be like <min>-max")
