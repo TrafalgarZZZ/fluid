@@ -20,6 +20,7 @@ import (
 	"os"
 
 	"github.com/fluid-cloudnative/fluid/pkg/ddc/jindofsx"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/fluid-cloudnative/fluid"
 	datav1alpha1 "github.com/fluid-cloudnative/fluid/api/v1alpha1"
@@ -123,7 +124,7 @@ func handle() {
 		os.Exit(1)
 	}
 
-	mgr.AddMetricsExtraHandler()
+	mgr.AddMetricsExtraHandler("/runtime_metrics", promhttp.Handler())
 
 	pr, err := net.ParsePortRange(portRange)
 	if err != nil {

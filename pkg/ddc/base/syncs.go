@@ -59,6 +59,7 @@ func (t *TemplateEngine) Sync(ctx cruntime.ReconcileRequestContext) (err error) 
 	// 3. Check healthy
 	err = t.Implement.CheckRuntimeHealthy()
 	if err != nil {
+		t.Metrics.HealthCheckErrorInc()
 		return
 	}
 

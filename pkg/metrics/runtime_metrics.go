@@ -17,9 +17,51 @@ limitations under the License.
 package metrics
 
 import (
+	"fmt"
+	"strings"
+
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 var (
-	runtimeSetupErrors = promauto
+	runtimeSetupErrorTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "runtime_setup_error_total",
+		Help: "Total num of errors during runtime setup",
+	}, []string{"runtime_type", "runtime"})
+
+	runtimeHealthCheckErrorTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "runtime_sync_healthcheck_error_total",
+		Help: "Total num of errors during runtime health check",
+	}, []string{"runtime_type", "runtime"})
 )
+
+// RuntimeMetrics holds all the metrics related to a specific kind of runtime.
+type RuntimeMetrics struct {
+	runtimeType string
+	runtimeKey  string
+
+	setupErrorTotal       prometheus.Counter
+	healthCheckErrorTotal prometheus.Counter
+}
+
+func NewRuntimeMetrics(runtimeType, runtimeNamespace, runtimeName string) *RuntimeMetrics {
+	key := fmt.Sprintf("%s/%s", runtimeNamespace, runtimeName)
+	label := prometheus.Labels{"runtime_type": strings.ToLower(runtimeType), "runtime": key}
+	metrics := &RuntimeMetrics{
+		runtimeType:           runtimeType,
+		runtimeKey:            key,
+		setupErrorTotal:       runtimeSetupErrorTotal.With(label),
+		healthCheckErrorTotal: runtimeHealthCheckErrorTotal.With(label),
+	}
+
+	return metrics
+}
+
+func (m *RuntimeMetrics) SetupErrorInc() {
+	m.setupErrorTotal.Inc()
+}
+
+func (m *RuntimeMetrics) HealthCheckErrorInc() {
+	m.healthCheckErrorTotal.Inc()
+}
