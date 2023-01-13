@@ -1,0 +1,12 @@
+apiVersion: data.fluid.io/v1alpha1
+kind: ThinRuntimeProfile
+metadata:
+  name: minio-profile
+spec:
+  fileSystemType: minio
+  fuse:
+    image: fluidcloudnative/minio-goofys
+    imageTag: v0.1
+    imagePullPolicy: IfNotPresent
+    command:
+    - "/usr/local/bin/entrypoint.sh"
