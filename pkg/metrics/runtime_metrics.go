@@ -47,12 +47,12 @@ type RuntimeMetrics struct {
 
 func NewRuntimeMetrics(runtimeType, runtimeNamespace, runtimeName string) *RuntimeMetrics {
 	key := fmt.Sprintf("%s/%s", runtimeNamespace, runtimeName)
-	label := prometheus.Labels{"runtime_type": strings.ToLower(runtimeType), "runtime": key}
+	runtimeLabel := prometheus.Labels{"runtime_type": strings.ToLower(runtimeType), "runtime": key}
 	metrics := &RuntimeMetrics{
 		runtimeType:           runtimeType,
 		runtimeKey:            key,
-		setupErrorTotal:       runtimeSetupErrorTotal.With(label),
-		healthCheckErrorTotal: runtimeHealthCheckErrorTotal.With(label),
+		setupErrorTotal:       runtimeSetupErrorTotal.With(runtimeLabel),
+		healthCheckErrorTotal: runtimeHealthCheckErrorTotal.With(runtimeLabel),
 	}
 
 	return metrics
