@@ -54,5 +54,5 @@ func (m *MountMetrics) SidecarMountedNumInc() {
 }
 
 func init() {
-	metrics.Registry.MustRegister(datasetUFSFileNum, datasetUFSTotalSize)
+	metrics.Registry.MustRegister(datasetCSIMountedNum, datasetSidecarMountedNum)
 }
