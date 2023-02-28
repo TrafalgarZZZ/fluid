@@ -26,6 +26,7 @@ import (
 	"github.com/fluid-cloudnative/fluid/pkg/common"
 	"github.com/fluid-cloudnative/fluid/pkg/ddc/alluxio/operations"
 	"github.com/fluid-cloudnative/fluid/pkg/ddc/base"
+	"github.com/fluid-cloudnative/fluid/pkg/metrics"
 	"github.com/fluid-cloudnative/fluid/pkg/utils"
 	"k8s.io/client-go/util/retry"
 )
@@ -310,6 +311,7 @@ func (e *AlluxioEngine) syncMetadataInternal() (err error) {
 				result.Done = false
 			} else {
 				result.UfsTotal = utils.BytesSize(float64(datasetUFSTotalBytes))
+				metrics.GetDatasetMetrics(dataset.Namespace, dataset.Name).SetUFSTotalSize(float64(datasetUFSTotalBytes))
 			}
 			fileNum, err := e.getDataSetFileNum()
 			if err != nil {
@@ -317,6 +319,10 @@ func (e *AlluxioEngine) syncMetadataInternal() (err error) {
 				result.Done = false
 			} else {
 				result.FileNum = fileNum
+				fileNumInt, err := strconv.Atoi(fileNum)
+				if err == nil {
+					metrics.GetDatasetMetrics(dataset.Namespace, dataset.Name).SetUFSFileNum(float64(fileNumInt))
+				}
 			}
 
 			if !result.Done {

@@ -26,6 +26,7 @@ import (
 	"github.com/fluid-cloudnative/fluid/api/v1alpha1"
 	"github.com/fluid-cloudnative/fluid/pkg/common"
 	"github.com/fluid-cloudnative/fluid/pkg/ddc/base"
+	"github.com/fluid-cloudnative/fluid/pkg/metrics"
 	"github.com/fluid-cloudnative/fluid/pkg/utils"
 	"github.com/fluid-cloudnative/fluid/pkg/utils/dataset/volume"
 	"github.com/fluid-cloudnative/fluid/pkg/utils/kubeclient"
@@ -107,6 +108,9 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	mountType := req.GetVolumeContext()[common.VolumeAttrMountType]
 	subPath := req.GetVolumeContext()[common.VolumeAttrFluidSubPath]
 
+	namespace := req.GetVolumeContext()[common.VolumeAttrNamespace]
+	name := req.GetVolumeContext()[common.VolumeAttrName]
+
 	if fluidPath == "" {
 		// fluidPath = fmt.Sprintf("/mnt/%s", req.)
 		return nil, status.Error(codes.InvalidArgument, "fluid_path is not set")
@@ -154,6 +158,7 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		glog.V(4).Infof("Succeed in binding %s to %s", mountPath, targetPath)
 	}
 
+	metrics.GetMountMetrics(namespace, name).CSIMountedNumInc()
 	return &csi.NodePublishVolumeResponse{}, nil
 }
 
