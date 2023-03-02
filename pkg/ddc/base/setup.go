@@ -22,11 +22,11 @@ import (
 
 // Setup the ddc engine
 func (b *TemplateEngine) Setup(ctx cruntime.ReconcileRequestContext) (ready bool, err error) {
-	defer func() {
-		if err != nil {
-			b.Metrics.SetupErrorInc()
-		}
-	}()
+	// defer func() {
+	// 	if err != nil {
+	// 		b.Metrics.SetupErrorInc()
+	// 	}
+	// }()
 
 	var (
 		shouldSetupMaster  bool
