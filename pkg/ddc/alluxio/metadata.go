@@ -311,7 +311,7 @@ func (e *AlluxioEngine) syncMetadataInternal() (err error) {
 				result.Done = false
 			} else {
 				result.UfsTotal = utils.BytesSize(float64(datasetUFSTotalBytes))
-				metrics.GetDatasetMetrics(dataset.Namespace, dataset.Name).SetUFSTotalSize(float64(datasetUFSTotalBytes))
+				// metrics.GetDatasetMetrics(dataset.Namespace, dataset.Name).SetUFSTotalSize(float64(datasetUFSTotalBytes))
 			}
 			fileNum, err := e.getDataSetFileNum()
 			if err != nil {

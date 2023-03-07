@@ -28,7 +28,11 @@ import (
 )
 
 func (e *JindoFSxEngine) CheckRuntimeHealthy() (err error) {
-
+	defer func() {
+		if err != nil {
+			e.metrics.HealthCheckErrorInc()
+		}
+	}()
 	// 1. Check the healthy of the master
 	if !e.runtime.Spec.Master.Disabled {
 		err = e.checkMasterHealthy()

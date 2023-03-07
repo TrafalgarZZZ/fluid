@@ -162,6 +162,7 @@ func (e *JindoFSxEngine) syncMetadataInternal() (err error) {
 					e.Log.Error(err, "Get Ufs Total size failed when syncing metadata", "name", e.name, "namespace", e.namespace)
 				} else {
 					result.UfsTotal = utils.BytesSize(float64(datasetUFSTotalBytes))
+					e.metrics.DatasetMetrics.SetUFSTotalSize(float64(datasetUFSTotalBytes))
 				}
 			}
 

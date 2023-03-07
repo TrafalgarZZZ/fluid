@@ -105,6 +105,11 @@ func (e *JindoFSxEngine) ShouldSetupMaster() (should bool, err error) {
 // It will print the information in the Debug window according to the Master status
 // It return any cache error encountered
 func (e *JindoFSxEngine) SetupMaster() (err error) {
+	defer func(){
+		if err != nil {
+			e.metrics.SetupErrorInc()
+		}
+	}()
 
 	// Setup the Jindo cluster
 	masterName := e.getMasterName()
