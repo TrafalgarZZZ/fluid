@@ -41,6 +41,7 @@ type RuntimeMetrics struct {
 	runtimeType string
 	runtimeKey  string
 
+	labels                prometheus.Labels
 	setupErrorTotal       prometheus.Counter
 	healthCheckErrorTotal prometheus.Counter
 }
@@ -51,6 +52,7 @@ func NewRuntimeMetrics(runtimeType, runtimeNamespace, runtimeName string) *Runti
 	metrics := &RuntimeMetrics{
 		runtimeType:           runtimeType,
 		runtimeKey:            key,
+		labels:                runtimeLabel,
 		setupErrorTotal:       runtimeSetupErrorTotal.With(runtimeLabel),
 		healthCheckErrorTotal: runtimeHealthCheckErrorTotal.With(runtimeLabel),
 	}
@@ -64,6 +66,13 @@ func (m *RuntimeMetrics) SetupErrorInc() {
 
 func (m *RuntimeMetrics) HealthCheckErrorInc() {
 	m.healthCheckErrorTotal.Inc()
+}
+
+func (m *RuntimeMetrics) CleanUpMetrics() bool {
+	done1 := runtimeSetupErrorTotal.Delete(m.labels)
+	done2 := runtimeHealthCheckErrorTotal.Delete(m.labels)
+
+	return done1 && done2
 }
 
 func init() {

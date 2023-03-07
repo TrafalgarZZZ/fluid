@@ -114,6 +114,11 @@ func (e *JindoFSxEngine) releasePorts() (err error) {
 
 // cleanAll cleans up the all
 func (e *JindoFSxEngine) cleanAll() (err error) {
+	forgot := e.metrics.ForgetMetrics()
+	if !forgot {
+		e.Log.Info("Failed to forget metrics when shutting down engine, may incur memory leak", "runtime", fmt.Sprintf("%s/%s", e.namespace, e.name))
+	}
+
 	count, err := e.Helper.CleanUpFuse()
 	if err != nil {
 		e.Log.Error(err, "Err in cleaning fuse")

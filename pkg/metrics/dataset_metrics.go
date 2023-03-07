@@ -36,23 +36,29 @@ var (
 )
 
 type DatasetMetrics struct {
-	key string
+	labels prometheus.Labels
 }
 
 func GetDatasetMetrics(datasetNamespace, datasetName string) *DatasetMetrics {
 	ret := &DatasetMetrics{
-		key: fmt.Sprintf("%s/%s", datasetNamespace, datasetName),
+		labels: prometheus.Labels{"dataset": fmt.Sprintf("%s/%s", datasetNamespace, datasetName)},
 	}
 
 	return ret
 }
 
 func (m *DatasetMetrics) SetUFSTotalSize(size float64) {
-	datasetUFSTotalSize.With(prometheus.Labels{"dataset": m.key}).Set(size)
+	datasetUFSTotalSize.With(m.labels).Set(size)
 }
 
 func (m *DatasetMetrics) SetUFSFileNum(num float64) {
-	datasetUFSFileNum.With(prometheus.Labels{"dataset": m.key}).Set(num)
+	datasetUFSFileNum.With(m.labels).Set(num)
+}
+
+func (m *DatasetMetrics) CleanUpMetrics() bool {
+	done1 := datasetUFSTotalSize.Delete(m.labels)
+	done2 := datasetUFSFileNum.Delete(m.labels)
+	return done1 && done2
 }
 
 func init() {

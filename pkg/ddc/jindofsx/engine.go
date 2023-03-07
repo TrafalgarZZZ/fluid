@@ -47,6 +47,8 @@ type JindoFSxEngine struct {
 	cacheNodeNames     []string
 	Recorder           record.EventRecorder
 	*ctrl.Helper
+
+	metrics *base.EngineMetrics
 }
 
 func Build(id string, ctx cruntime.ReconcileRequestContext) (base.Engine, error) {
@@ -60,6 +62,8 @@ func Build(id string, ctx cruntime.ReconcileRequestContext) (base.Engine, error)
 		retryShutdown:          0,
 		cacheNodeNames:         []string{},
 		Recorder:               ctx.Recorder,
+
+		metrics: base.NewEngineMetrics(ctx.Namespace, ctx.Name, ctx.RuntimeType),
 	}
 	// var implement base.Implement = engine
 	// engine.TemplateEngine = template
