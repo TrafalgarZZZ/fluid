@@ -178,6 +178,7 @@ func (r *FuseRecover) runOnce() {
 			continue
 		}
 		if !podutil.IsPodReady(&pod) {
+			glog.Infof("Skip checking pod [%s/%s] because it's not ready", pod.Namespace, pod.Name)
 			continue
 		}
 		glog.V(6).Infof("get fluid fuse pod: %s, namespace: %s", pod.Name, pod.Namespace)
@@ -194,6 +195,10 @@ func (r FuseRecover) recover() {
 	if err != nil {
 		glog.Error(err)
 		return
+	}
+	glog.Infof("Found %d items in brokenMounts", len(brokenMounts))
+	for _, item := range brokenMounts {
+		glog.Infof(">>>>>>>> source path: %s, mount path: %s", item.SourcePath, item.MountPath)
 	}
 
 	for _, point := range brokenMounts {

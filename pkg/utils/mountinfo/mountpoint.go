@@ -45,9 +45,19 @@ func GetBrokenMountPoints() ([]MountPoint, error) {
 	if err != nil {
 		return nil, err
 	}
+	glog.Infof("Found %d mounts in globalMountByName", len(globalMountByName))
+	for k, v := range globalMountByName {
+		glog.Infof("%s >>>>>>>>> %s", k, v.MountPath, v.PeerGroup)
+	}
 
 	// get bind mount
 	bindMountByName := getBindMounts(mountByPath)
+	glog.Infof("Found %d mounts in bindMountByName", len(bindMountByName))
+	for k, v := range bindMountByName {
+		for _, item := range v {
+			glog.Infof("%s >>>>>>>>> %s", k, item.MountPath, item.PeerGroup)
+		}
+	}
 
 	// get broken bind mount
 	return getBrokenBindMounts(globalMountByName, bindMountByName), nil
