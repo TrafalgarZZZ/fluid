@@ -47,7 +47,7 @@ func GetBrokenMountPoints() ([]MountPoint, error) {
 	}
 	glog.Infof("Found %d mounts in globalMountByName", len(globalMountByName))
 	for k, v := range globalMountByName {
-		glog.Infof("%s >>>>>>>>> %s", k, v.MountPath, v.PeerGroup)
+		glog.Infof("%s >>>>>>>>> mount path: %s, peer group: %v", k, v.MountPath, v.PeerGroup)
 	}
 
 	// get bind mount
@@ -55,7 +55,7 @@ func GetBrokenMountPoints() ([]MountPoint, error) {
 	glog.Infof("Found %d mounts in bindMountByName", len(bindMountByName))
 	for k, v := range bindMountByName {
 		for _, item := range v {
-			glog.Infof("%s >>>>>>>>> %s", k, item.MountPath, item.PeerGroup)
+			glog.Infof("%s >>>>>>>>> mount path: %s, peer group: %v", k, item.MountPath, item.PeerGroup)
 		}
 	}
 
