@@ -264,6 +264,8 @@ func (r *FuseRecover) compareOrRecordContainerStat(pod corev1.Pod) (restarted bo
 			r.containers[key] = cs
 			continue
 		}
+		glog.Infof("Container [%s] of pod [%s/%s]'s start time is %s, record %s",
+			cn.Name, pod.Namespace, pod.Name, cn.State.Running.StartedAt.String(), cs.startAt.String())
 
 		if cs.startAt.Before(&cn.State.Running.StartedAt) {
 			glog.Infof("Container %s of pod %s in namespace %s start time is %s, but record %s",
