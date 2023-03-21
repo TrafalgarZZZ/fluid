@@ -61,11 +61,12 @@ func (t *ThinEngine) transformResourcesForFuse(resources corev1.ResourceRequirem
 	}
 
 	if resources.Limits != nil {
-		t.Log.Info("setting fuse Resources limit")
 		if quantity, ok := resources.Limits[corev1.ResourceCPU]; ok {
+			t.Log.Info("setting fuse Resources limit", "old cpu", value.Fuse.Resources.Limits[corev1.ResourceCPU], "new cpu", quantity.String())
 			value.Fuse.Resources.Limits[corev1.ResourceCPU] = quantity.String()
 		}
 		if quantity, ok := resources.Limits[corev1.ResourceMemory]; ok {
+			t.Log.Info("setting fuse Resources limit", "old mem", value.Fuse.Resources.Limits[corev1.ResourceMemory], "new mem", quantity.String())
 			value.Fuse.Resources.Limits[corev1.ResourceMemory] = quantity.String()
 		}
 	}
@@ -73,9 +74,11 @@ func (t *ThinEngine) transformResourcesForFuse(resources corev1.ResourceRequirem
 	if resources.Requests != nil {
 		t.Log.Info("setting fuse Resources request")
 		if quantity, ok := resources.Requests[corev1.ResourceCPU]; ok {
+			t.Log.Info("setting fuse Resources requests", "old cpu", value.Fuse.Resources.Requests[corev1.ResourceCPU], "new cpu", quantity.String())
 			value.Fuse.Resources.Requests[corev1.ResourceCPU] = quantity.String()
 		}
 		if quantity, ok := resources.Requests[corev1.ResourceMemory]; ok {
+			t.Log.Info("setting fuse Resources requests", "old mem", value.Fuse.Resources.Requests[corev1.ResourceMemory], "new mem", quantity.String())
 			value.Fuse.Resources.Requests[corev1.ResourceMemory] = quantity.String()
 		}
 	}
