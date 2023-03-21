@@ -45,7 +45,7 @@ func (t *ThinEngine) transformFuse(runtime *datav1alpha1.ThinRuntime, profile *d
 		return
 	}
 	// 2. resources
-	t.Log.Info("transformResourcesForFuse() with runtime", "runtime resource", runtime.Spec.Fuse.Resources, "value resource", value.Fuse.Resources)
+	t.Log.Info("transformResourcesForFuse() with runtime", "runtime", fmt.Sprintf("%s/%s", runtime.GetNamespace(), runtime.GetName()), "runtime resource", runtime.Spec.Fuse.Resources, "value resource", value.Fuse.Resources)
 	t.transformResourcesForFuse(runtime.Spec.Fuse.Resources, value)
 
 	// 3. volumes
@@ -223,7 +223,7 @@ func (t *ThinEngine) parseFromProfileFuse(profile *datav1alpha1.ThinRuntimeProfi
 		value.Fuse.ImagePullPolicy = profile.Spec.Fuse.ImagePullPolicy
 	}
 	// 2. resources
-	t.Log.Info("transformResourcesForFuse() with runtime profile", "profile resource", profile.Spec.Fuse.Resources, "value resource", value.Fuse.Resources)
+	t.Log.Info("transformResourcesForFuse() with runtime profile", "profile", profile.Name, "profile resource", profile.Spec.Fuse.Resources, "value resource", value.Fuse.Resources)
 	t.transformResourcesForFuse(profile.Spec.Fuse.Resources, value)
 
 	// 3. volumes
