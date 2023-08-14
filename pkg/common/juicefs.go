@@ -32,7 +32,7 @@ const (
 
 	DefaultJuiceFSRuntimeImage = "juicedata/juicefs-fuse:v1.0.4-4.9.2"
 
-	DefaultJuiceFSMigrateImage = "juicedata/juicefs-fuse:nightly"
+	DefaultJuiceFSMigrateImage = "juicedata/juicefs-fuse:v1.0.4-4.9.2"
 
 	NightlyTag = "nightly"
 
