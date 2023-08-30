@@ -18,9 +18,12 @@ package fluidapp
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -31,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	datav1alpha1 "github.com/fluid-cloudnative/fluid/api/v1alpha1"
 	"github.com/fluid-cloudnative/fluid/pkg/common"
 	"github.com/fluid-cloudnative/fluid/pkg/ctrl/watch"
 	"github.com/fluid-cloudnative/fluid/pkg/utils"
@@ -90,11 +94,12 @@ func (f *FluidAppReconciler) Reconcile(ctx context.Context, request reconcile.Re
 	}
 	requestCtx.pod = pod
 
-	if !watch.ShouldInQueue(pod) {
-		requestCtx.Log.Info("pod should not in queue", "name", request.Name, "namespace", request.Namespace)
-		return reconcile.Result{}, nil
+	if watch.ShouldInQueue(pod) {
+		requestCtx.Log.Info("reconcile pod with fuse sidecar", "name", request.Name, "namespace", request.Namespace)
+		return f.internalReconcile(requestCtx)
 	}
-	return f.internalReconcile(requestCtx)
+
+	return f.internalReconcileWarmup(requestCtx)
 }
 
 func (f *FluidAppReconciler) internalReconcile(ctx reconcileRequestContext) (ctrl.Result, error) {
@@ -107,6 +112,51 @@ func (f *FluidAppReconciler) internalReconcile(ctx reconcileRequestContext) (ctr
 		return utils.RequeueIfError(err)
 	}
 	return utils.NoRequeue()
+}
+
+func (f *FluidAppReconciler) internalReconcileWarmup(ctx reconcileRequestContext) (ctrl.Result, error) {
+	pod := ctx.pod
+	var datasetWarmupPathMap map[string][]string
+	for k, v := range pod.Annotations {
+		if k == "fluid.io/auto-dataset-warmup" {
+			datasetWarmupPathMap = parseWarmupInfo(v)
+			break
+		}
+	}
+	if datasetWarmupPathMap == nil {
+		return ctrl.Result{}, nil
+	}
+
+	for datasetName, targetPaths := range datasetWarmupPathMap {
+		dataload := &datav1alpha1.DataLoad{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: pod.Namespace,
+				Name:      fmt.Sprintf("%s-warmup", datasetName),
+			},
+			Spec: datav1alpha1.DataLoadSpec{
+				Dataset: datav1alpha1.TargetDataset{
+					Name:      datasetName,
+					Namespace: pod.Namespace,
+				},
+				Target: []datav1alpha1.TargetPath{},
+			},
+		}
+
+		for _, tp := range targetPaths {
+			dataload.Spec.Target = append(dataload.Spec.Target, datav1alpha1.TargetPath{
+				Path: tp,
+			})
+		}
+
+		if err := f.Client.Create(context.TODO(), dataload); err != nil {
+			if utils.IgnoreAlreadyExists(err) == nil {
+				continue
+			}
+			return utils.RequeueIfError(err)
+		}
+	}
+
+	return ctrl.Result{}, nil
 }
 
 func (f *FluidAppReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
@@ -122,4 +172,24 @@ func NewCache(scheme *runtime.Scheme) cache.NewCacheFunc {
 			})},
 		},
 	})
+}
+
+func parseWarmupInfo(warmupInfoStr string) (datasetWarmupPathMap map[string][]string) {
+	// e.g. warmupInfoStr is like "<dataset1>:/path1,/path/to/dir;<dataset2>:/path2"
+	warmupInfoByDataset := strings.Split(warmupInfoStr, ";")
+	if len(warmupInfoByDataset) == 0 {
+		return
+	}
+
+	for _, info := range warmupInfoByDataset {
+		items := strings.Split(info, ":")
+		if len(items) < 2 {
+			continue
+		}
+		datasetName := items[0]
+		targetPaths := strings.Split(items[1], ",")
+		datasetWarmupPathMap[datasetName] = targetPaths
+	}
+
+	return
 }
