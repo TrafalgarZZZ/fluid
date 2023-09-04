@@ -20,6 +20,7 @@ import (
 	"os"
 
 	"github.com/fluid-cloudnative/fluid"
+	datav1alpha1 "github.com/fluid-cloudnative/fluid/api/v1alpha1"
 	"github.com/fluid-cloudnative/fluid/pkg/controllers/v1alpha1/fluidapp"
 	"github.com/fluid-cloudnative/fluid/pkg/utils"
 	"github.com/spf13/cobra"
@@ -56,6 +57,7 @@ var fluidAppCmd = &cobra.Command{
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
+	_ = datav1alpha1.AddToScheme(scheme)
 	fluidAppCmd.Flags().StringVarP(&metricsAddr, "metrics-addr", "", ":8080", "The address the metric endpoint binds to.")
 	fluidAppCmd.Flags().BoolVarP(&enableLeaderElection, "enable-leader-election", "", false, "Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
 	fluidAppCmd.Flags().StringVarP(&leaderElectionNamespace, "leader-election-namespace", "", "fluid-system", "The namespace in which the leader election resource will be created.")

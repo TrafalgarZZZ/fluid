@@ -175,6 +175,8 @@ func NewCache(scheme *runtime.Scheme) cache.NewCacheFunc {
 }
 
 func parseWarmupInfo(warmupInfoStr string) (datasetWarmupPathMap map[string][]string) {
+	datasetWarmupPathMap = map[string][]string{}
+
 	// e.g. warmupInfoStr is like "<dataset1>:/path1,/path/to/dir;<dataset2>:/path2"
 	warmupInfoByDataset := strings.Split(warmupInfoStr, ";")
 	if len(warmupInfoByDataset) == 0 {

@@ -38,6 +38,12 @@ func (h *podEventHandler) onCreateFunc(r Controller) func(e event.CreateEvent) b
 			return false
 		}
 
+		for k, _ := range pod.Annotations {
+			if k == "fluid.io/auto-dataset-warmup" {
+				return true
+			}
+		}
+
 		if !ShouldInQueue(pod) {
 			log.Info("podEventHandler.onCreateFunc skip due to shouldRequeue false")
 			return false
