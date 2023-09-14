@@ -35,7 +35,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	datav1alpha1 "github.com/fluid-cloudnative/fluid/api/v1alpha1"
-	"github.com/fluid-cloudnative/fluid/pkg/common"
 	"github.com/fluid-cloudnative/fluid/pkg/ctrl/watch"
 	"github.com/fluid-cloudnative/fluid/pkg/utils"
 	"github.com/fluid-cloudnative/fluid/pkg/utils/kubeclient"
@@ -138,6 +137,7 @@ func (f *FluidAppReconciler) internalReconcileWarmup(ctx reconcileRequestContext
 					Name:      datasetName,
 					Namespace: pod.Namespace,
 				},
+				LoadMetadata: true,
 				Target: []datav1alpha1.TargetPath{},
 			},
 		}
@@ -168,7 +168,8 @@ func NewCache(scheme *runtime.Scheme) cache.NewCacheFunc {
 		Scheme: scheme,
 		SelectorsByObject: cache.SelectorsByObject{
 			&corev1.Pod{}: {Label: labels.SelectorFromSet(labels.Set{
-				common.InjectSidecarDone: common.True,
+				"app": "tgi-llama2",
+				// common.InjectSidecarDone: common.True,
 			})},
 		},
 	})
