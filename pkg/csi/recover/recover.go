@@ -18,7 +18,9 @@ package recover
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -167,6 +169,19 @@ func (r *FuseRecover) recover() {
 }
 
 func (r *FuseRecover) recoverBrokenMount(point mountinfo.MountPoint) (err error) {
+	// Set point.MountPath a rslave mount point to avoid mount propagation on other shared mount points
+	mountCmd := "mount"
+	mountArgs := []string{"--make-rslave", point.MountPath}
+	mountArgsLogStr := strings.Join(mountArgs, " ")
+	glog.V(4).Infof("Mounting cmd (%s) with arguments (%s)", mountCmd, mountArgsLogStr)
+	command := exec.Command(mountCmd, mountArgs...)
+	output, err := command.CombinedOutput()
+	if err != nil {
+		glog.Errorf("Mount failed: %v\nMounting command: %s\nMounting arguments: %s\nOutput: %s\n", err, mountCmd, mountArgsLogStr, string(output))
+		return fmt.Errorf("mount failed: %v\nMounting command: %s\nMounting arguments: %s\nOutput: %s",
+			err, mountCmd, mountArgsLogStr, string(output))
+	}
+
 	// recovery for each bind mount path
 	mountOption := []string{"bind"}
 	if point.ReadOnly {
