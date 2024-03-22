@@ -275,7 +275,8 @@ func (r *RuntimeReconciler) ReconcileRuntime(engine base.Engine, ctx cruntime.Re
 		return utils.RequeueAfterInterval(time.Duration(20 * time.Second))
 	}
 
-	return utils.RequeueAfterInterval(time.Duration(90 * time.Second))
+	// return utils.RequeueAfterInterval(time.Duration(90 * time.Second))
+	return utils.RequeueAfterInterval(time.Duration(1200 * time.Second))
 }
 
 // AddFinalizerAndRequeue add  finalizer and requeue
