@@ -10,9 +10,9 @@ RUN cd ossfs-1.91.1 \
   && make \
   && make install
 
-FROM registry.cn-beijing.aliyuncs.com/fluid-namespace/fluid-dynamic-mount:base-v1.4
+FROM fluidcloudnative/dynamic-mount:base
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/' /etc/apk/repositories
-RUN apk --update add jq
+RUN apk --update add jq curl libxml2
 COPY --from=builder /usr/bin/ossfs /usr/bin/ossfs
 COPY mount.sh /opt/mount.sh
 RUN chmod u+x /opt/mount.sh
