@@ -1,4 +1,5 @@
 FROM alpine:3.18 AS builder
+
 ENV OSSFS_VERSION 1.91.1
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/' /etc/apk/repositories
 RUN apk --update add fuse alpine-sdk automake autoconf libxml2-dev fuse-dev curl-dev pkgconf
@@ -9,14 +10,9 @@ RUN cd ossfs-1.91.1 \
   && make \
   && make install
 
-FROM alpine:3.18
+FROM registry.cn-beijing.aliyuncs.com/fluid-namespace/fluid-dynamic-mount:base-v1.2
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/' /etc/apk/repositories
-RUN apk --update add fuse curl libxml2 openssl libstdc++ libgcc python3 inotify-tools bash coreutils tini && rm -rf /var/cache/apk/* 
-ENV OSSFS_VERSION v1.91.1
+RUN apk --update add jq
 COPY --from=builder /usr/bin/ossfs /usr/bin/ossfs
-
-ADD mount_and_umount.py /
-ADD inotify.sh /
-ADD umount.sh /
-RUN chmod u+x /inotify.sh /umount.sh
-ENTRYPOINT ["/sbin/tini", "-g", "--"]
+COPY mount.sh /opt/mount.sh
+RUN chmod u+x /opt/mount.sh
