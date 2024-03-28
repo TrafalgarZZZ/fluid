@@ -26,8 +26,9 @@ function mount_fn() {
     mount_target=$2
     mount_opt_file=$3
 
-    # NOTES: umount $mount_target here to avoid [[ -d $mount_target ]] returning "Transport Endpoint is not connected" error.
-    if mount | grep " on ${mount_target} " > /dev/null; then
+    # NOTES.1: umount $mount_target here to avoid [[ -d $mount_target ]] returning "Transport Endpoint is not connected" error.
+    # NOTES.2: Use "cat /proc/self/mountinfo" instead of the "mount" command because Alpine has some issue on printing mount info with "mount".
+    if cat /proc/self/mountinfo | grep " ${mount_target} " > /dev/null; then
         echo "found mount point on ${mount_target}, umount it before re-mount."
         umount ${mount_target}
     fi
