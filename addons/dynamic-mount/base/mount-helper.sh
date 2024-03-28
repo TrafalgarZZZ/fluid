@@ -45,7 +45,7 @@ function umount_fn() {
         error_msg "Error: mount-helper.sh umount expects 1 argument, but got $# arguments."
     fi
     umount $1 || true
-    rmdir $1
+    rmdir $1 || echo "WARNING: failed to clean dir \"$1\", perhaps filesystem still mounting on it."
 }
 
 function main() {
