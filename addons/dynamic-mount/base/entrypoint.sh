@@ -4,4 +4,4 @@ set -e
 
 trap "/usr/local/bin/prestop.sh" SIGTERM 
 
-tini -- supervisord -n
+supervisord -n

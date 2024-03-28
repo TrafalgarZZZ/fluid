@@ -10,7 +10,7 @@ RUN cd ossfs-1.91.1 \
   && make \
   && make install
 
-FROM registry.cn-beijing.aliyuncs.com/fluid-namespace/fluid-dynamic-mount:base-v1.2
+FROM registry.cn-beijing.aliyuncs.com/fluid-namespace/fluid-dynamic-mount:base-v1.4
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/' /etc/apk/repositories
 RUN apk --update add jq
 COPY --from=builder /usr/bin/ossfs /usr/bin/ossfs

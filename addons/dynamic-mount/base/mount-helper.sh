@@ -46,7 +46,6 @@ function umount_fn() {
         error_msg "Error: mount-helper.sh umount expects 1 argument, but got $# arguments."
     fi
     umount $1 || true
-    rmdir $1 || echo "WARNING: failed to clean dir \"$1\", perhaps filesystem still mounting on it."
 }
 
 function main() {
@@ -54,7 +53,7 @@ function main() {
         error_msg "Error: not enough arguments, require at least 1 argument"
     fi
 
-    while [[ $# -gt 0 ]]; do
+    if [[ $# -gt 0 ]]; then
         case $1 in
             mount)
                 shift
@@ -68,7 +67,7 @@ function main() {
                 error_msg "Error: unknown option: $1"
                 ;;
         esac
-    done
+    fi 
 }
 
 main $@
