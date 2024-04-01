@@ -5,7 +5,7 @@ import os
 FLUID_RUNTIME_MNT = os.environ.get("MOUNT_POINT")
 FLUID_MOUNT_OPT_DIR = "/etc/fluid/mount-opts"
 FLUID_CONFIG_FILE = "/etc/fluid/config/config.json"
-SUPERVISORD_SETTING_DIR = "/etc/supervisor.d"
+SUPERVISORD_SETTING_DIR = "/etc/supervisor/conf.d"
 SUPERVISORD_SETTING_TEMPLATE = """[program:{name}]
 command=mount-helper.sh mount {mount_src} {mount_target} {mount_opt_file}
 stdout_logfile=/var/logs/fluid/{name}.out
@@ -29,19 +29,19 @@ def reconcile_supervisord_settings():
 
     print(f"{FLUID_CONFIG_FILE}: {rawStr[0]}") # config.json only have one line in json format
 
-    setting_files = glob.glob(os.path.join(SUPERVISORD_SETTING_DIR, "*.ini"))
+    setting_files = glob.glob(os.path.join(SUPERVISORD_SETTING_DIR, "*.conf"))
 
     # obj["mounts"] is like [{"mountPoint": "s3://mybucket", "name": "mybucket", "path": "/mybucket", "options":{...}}, {"mountPoint": "s3://mybucket2", "name": "mybucket2", "path": "/mybucket2", "options":{...}}]
     obj = json.loads(rawStr[0])
     expected_mounts = [mount["name"] for mount in obj["mounts"]]
-    current_mounts = [os.path.basename(file).removesuffix(".ini") for file in setting_files]
+    current_mounts = [os.path.basename(file).removesuffix(".conf") for file in setting_files]
 
     need_mount = list(set(expected_mounts).difference(set(current_mounts)))
     need_unmount = list(set(current_mounts).difference(set(expected_mounts)))
     print(f"need mount: {need_mount}, need umount: {need_unmount}")
 
     for name in need_unmount:
-        setting_file = os.path.join(SUPERVISORD_SETTING_DIR, f"{name}.ini")
+        setting_file = os.path.join(SUPERVISORD_SETTING_DIR, f"{name}.conf")
         if os.path.isfile(setting_file):
             os.remove(setting_file)
             print(f"Mount \"{name}\"'s settings has been removed.")
@@ -64,7 +64,7 @@ def reconcile_supervisord_settings():
         mount_opt_file = os.path.join(FLUID_MOUNT_OPT_DIR, f"{name}.opts")
         write_mount_opts(mount_info["options"], mount_opt_file)
 
-        setting_file = os.path.join(SUPERVISORD_SETTING_DIR, f"{name}.ini")
+        setting_file = os.path.join(SUPERVISORD_SETTING_DIR, f"{name}.conf")
         with open(setting_file, 'w') as f:
             f.write(SUPERVISORD_SETTING_TEMPLATE.format(name=name, mount_src=mount_src, mount_target=mount_target, mount_opt_file=mount_opt_file))
 
