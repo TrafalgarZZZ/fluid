@@ -44,24 +44,26 @@ func (t *ThinEngine) SyncMetadata() (err error) {
 
 // shouldSyncMetadata checks dataset's UfsTotal to decide whether should sync metadata
 func (t *ThinEngine) shouldSyncMetadata() (should bool, err error) {
-	dataset, err := utils.GetDataset(t.Client, t.name, t.namespace)
-	if err != nil {
-		should = false
-		return should, err
-	}
+	return false, nil
 
-	//todo(xuzhihao): option to enable/disable automatic metadata sync
-	//todo: periodical metadata sync
-	if dataset.Status.UfsTotal != "" && dataset.Status.UfsTotal != MetadataSyncNotDoneMsg {
-		t.Log.V(1).Info("dataset ufs is ready",
-			"dataset name", dataset.Name,
-			"dataset namespace", dataset.Namespace,
-			"ufstotal", dataset.Status.UfsTotal)
-		should = false
-		return should, nil
-	}
-	should = true
-	return should, nil
+	// dataset, err := utils.GetDataset(t.Client, t.name, t.namespace)
+	// if err != nil {
+	// 	should = false
+	// 	return should, err
+	// }
+
+	// //todo(xuzhihao): option to enable/disable automatic metadata sync
+	// //todo: periodical metadata sync
+	// if dataset.Status.UfsTotal != "" && dataset.Status.UfsTotal != MetadataSyncNotDoneMsg {
+	// 	t.Log.V(1).Info("dataset ufs is ready",
+	// 		"dataset name", dataset.Name,
+	// 		"dataset namespace", dataset.Namespace,
+	// 		"ufstotal", dataset.Status.UfsTotal)
+	// 	should = false
+	// 	return should, nil
+	// }
+	// should = true
+	// return should, nil
 }
 
 // syncMetadataInternal does the actual work of metadata sync
