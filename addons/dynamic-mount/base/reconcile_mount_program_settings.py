@@ -7,7 +7,7 @@ FLUID_MOUNT_OPT_DIR = "/etc/fluid/mount-opts"
 FLUID_CONFIG_FILE = "/etc/fluid/config/config.json"
 SUPERVISORD_SETTING_DIR = "/etc/supervisor/conf.d"
 SUPERVISORD_SETTING_TEMPLATE = """[program:{name}]
-command=mount-helper.sh mount {mount_src} {mount_target} {mount_opt_file}
+command=mount-helper.sh mount {mount_src} {mount_target} {fs_type} {mount_opt_file}
 stdout_logfile=/var/logs/fluid/{name}.out
 stderr_logfile=/var/logs/fluid/{name}.err
 autorestart=true
@@ -53,7 +53,10 @@ def reconcile_supervisord_settings():
             print(f"WARNING: mount \"{name}\" is not found in {FLUID_CONFIG_FILE}.")
             continue
         mount_info = mount_info_dict[name]
-        mount_src = mount_info["mountPoint"]
+        mount_src: str = mount_info["mountPoint"]
+        fs_type = "unknown"
+        if len(mount_src.split("://")) == 2:
+            fs_type = mount_src.split("://")[0] # e.g. mount_src="nfs://xxxx/yyyy" => fs_type=nfs
         mount_dir_name = name
         if "path" in mount_info:
             if mount_info["path"] != "/":
@@ -66,7 +69,7 @@ def reconcile_supervisord_settings():
 
         setting_file = os.path.join(SUPERVISORD_SETTING_DIR, f"{name}.conf")
         with open(setting_file, 'w') as f:
-            f.write(SUPERVISORD_SETTING_TEMPLATE.format(name=name, mount_src=mount_src, mount_target=mount_target, mount_opt_file=mount_opt_file))
+            f.write(SUPERVISORD_SETTING_TEMPLATE.format(name=name, mount_src=mount_src, mount_target=mount_target, fs_type=fs_type, mount_opt_file=mount_opt_file))
 
         print(f"Mount \"{name}\"'s setting is successfully written to {setting_file}")
 

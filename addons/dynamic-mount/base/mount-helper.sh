@@ -24,7 +24,8 @@ function mount_fn() {
     fi
     mount_src=$1
     mount_target=$2
-    mount_opt_file=$3
+    fs_type=$3
+    mount_opt_file=$4
 
     # NOTES.1: umount $mount_target here to avoid [[ -d $mount_target ]] returning "Transport Endpoint is not connected" error.
     # NOTES.2: Use "cat /proc/self/mountinfo" instead of the "mount" command because Alpine has some issue on printing mount info with "mount".
@@ -38,7 +39,7 @@ function mount_fn() {
     fi
 
     # exec to make supervisord monitor this process.
-    exec /opt/mount.sh $mount_src $mount_target $mount_opt_file
+    exec /opt/mount.sh $mount_src $mount_target $fs_type $mount_opt_file
 }
 
 function umount_fn() {
