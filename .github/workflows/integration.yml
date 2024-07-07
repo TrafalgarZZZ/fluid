@@ -19,6 +19,7 @@ jobs:
     env:
       GOPATH: ${{ github.workspace }}
       GO111MODULE: auto
+      KIND_CLUSTER: fluid-cluster
     defaults:
       run:
         working-directory: ${{ env.GOPATH }}/src/github.com/fluid-cloudnative/fluid
@@ -28,6 +29,9 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
+      
+      - name: Set up Helm
+        uses: azure/setup-helm@v4.2.0
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -38,9 +42,23 @@ jobs:
         uses: helm/kind-action@v1.10.0
         with:
           node_image: kindest/node:${{ matrix.kubernetes-version }}
-          cluster_name: fluid-cluster
+          cluster_name: ${{ env.KIND_CLUSTER }}
           kubectl_version: ${{ matrix.kubernetes-version }}
 
       - name: Build fluid docker images
+        env:
+          IMG_REPO: fluidcloudnative
         run: |
-          make docker-build-all
+          ./.github/scripts/build-all-images.sh
+
+      - name: Deploy fluid to Kind cluster
+        run: |
+          ./.github/scripts/deploy-fluid-to-kind.sh
+
+      - name: Check fluid control plane
+        timeout-minutes: 3
+        run: |
+          while true; do
+            kubectl get pod -n fluid-system
+            sleep 1
+          done
