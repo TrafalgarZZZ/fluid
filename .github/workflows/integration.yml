@@ -59,6 +59,6 @@ jobs:
         timeout-minutes: 3
         run: |
           while true; do
-            kubectl get pod -n fluid-system
-            sleep 1
+            kubectl describe pod -n fluid-system
+            sleep 10
           done
