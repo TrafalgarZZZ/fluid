@@ -1,18 +1,31 @@
 #!/bin/bash
 set -e
 
+function get_image_tag() {
+    version=$(grep "^VERSION=" ./Makefile)
+    version=${version#VERSION=}
+
+    git_sha=$(git rev-parse --short HEAD || echo "HEAD")
+    export IMAGE_TAG=${version}-${git_sha}
+}
+
+get_image_tag
+
 make docker-build-all
 
 images=(
-${IMG_REPO}/dataset-controller
-${IMG_REPO}/application-controller
-${IMG_REPO}/alluxioruntime-controller
-${IMG_REPO}/jindoruntime-controller
-${IMG_REPO}/goosefsruntime-controller
-${IMG_REPO}/juicefsruntime-controller
-${IMG_REPO}/thinruntime-controller
-${IMG_REPO}/efcruntime-controller
-${IMG_REPO}/vineyardruntime-controller
+${IMG_REPO}/dataset-controller:${IMAGE_TAG}
+${IMG_REPO}/application-controller:${IMAGE_TAG}
+${IMG_REPO}/alluxioruntime-controller:${IMAGE_TAG}
+${IMG_REPO}/jindoruntime-controller:${IMAGE_TAG}
+${IMG_REPO}/goosefsruntime-controller:${IMAGE_TAG}
+${IMG_REPO}/juicefsruntime-controller:${IMAGE_TAG}
+${IMG_REPO}/thinruntime-controller:${IMAGE_TAG}
+${IMG_REPO}/efcruntime-controller:${IMAGE_TAG}
+${IMG_REPO}/vineyardruntime-controller:${IMAGE_TAG}
+${IMG_REPO}/fluid-csi:${IMAGE_TAG}
+${IMG_REPO}/fluid-webhook:${IMAGE_TAG}
+${IMG_REPO}/fluid-crd-upgrader:${IMAGE_TAG}
 )
 
 for img in ${images[@]}; do
