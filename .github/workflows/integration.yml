@@ -49,7 +49,11 @@ jobs:
         env:
           IMG_REPO: fluidcloudnative
         run: |
+          echo ">>> System disk usage before build fluid images"
+          df -h
           ./.github/scripts/build-all-images.sh
+          echo ">>> System disk usage after build fluid images"
+          df -h
 
       - name: Deploy fluid to Kind cluster
         run: |
