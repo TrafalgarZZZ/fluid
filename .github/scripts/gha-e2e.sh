@@ -19,5 +19,11 @@ function check_control_plane_status() {
     syslog "Fluid control plane is ready!"
 }
 
+function alluxio_e2e() {
+    docker pull alluxio/alluxio-dev:2.9.0
+    kind load docker-image alluxio/alluxio-dev:2.9.0 --name ${KIND_CLUSTER}
+    bash test/gha-e2e/alluxio/test.sh
+}
+
 check_control_plane_status
-bash test/gha-e2e/alluxio/test.sh
+alluxio_e2e
