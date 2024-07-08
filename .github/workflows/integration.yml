@@ -55,9 +55,12 @@ jobs:
           echo ">>> System disk usage after build fluid images"
           df -h
           docker system df
+          docker ps
           docker container prune -f
           docker images
           docker image prune -a -f
+          docker builder prune -a -f
+          docker buildx prune -a -f
 
       - name: Deploy fluid to Kind cluster
         run: |
