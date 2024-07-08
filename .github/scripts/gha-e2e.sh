@@ -23,6 +23,7 @@ function alluxio_e2e() {
     set -e
     docker pull alluxio/alluxio-dev:2.9.0
     kind load docker-image alluxio/alluxio-dev:2.9.0 --name ${KIND_CLUSTER}
+    docker image prune -a -f
     bash test/gha-e2e/alluxio/test.sh
 }
 
