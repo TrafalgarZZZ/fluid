@@ -83,7 +83,7 @@ func getBindMounts(mountByPath map[string]*Mount) (targetPathByVolumeName map[st
 	subPathByPodUid = make(map[string][]*Mount)
 	for k, m := range mountByPath {
 		var datasetNamespacedName string
-		if strings.Contains(k, "kubernetes.io~csi") && strings.Contains(k, "mount") {
+		if strings.Contains(k, "kubernetes.io~csi") && strings.HasSuffix(k, "mount") {
 			// root target path for a fluid volume is like: /{kubeletRootDir}(default: /var/lib/kubelet)/pods/{podUID}/volumes/kubernetes.io~csi/{namespace}-{datasetName}/mount
 			fields := strings.Split(k, "/")
 			if len(fields) < 3 {

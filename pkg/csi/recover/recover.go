@@ -292,6 +292,9 @@ func (r *FuseRecover) doRecover(point mountinfo.MountPoint) {
 // doRecoverSubPath recovers sub path by following how kubelet prepares subPaths for pods.
 func (r *FuseRecover) doRecoverSubPath(volumePath string, subPath mountinfo.Mount) (err error) {
 	// todo: umountDuplicate when over threshold
+	if strings.HasSuffix(subPath.Subtree, "//deleted") {
+		subPath.Subtree = strings.TrimSuffix(subPath.Subtree, "//deleted")
+	}
 	fullSubPath := filepath.Join(volumePath, subPath.Subtree)
 	fd, err := doSafeOpen(filepath.Join(volumePath, subPath.Subtree), volumePath)
 	if err != nil {
