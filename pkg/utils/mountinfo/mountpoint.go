@@ -32,6 +32,7 @@ type MountPoint struct {
 	ReadOnly              bool
 	Count                 int
 	NamespacedDatasetName string // <namespace>-<dataset>
+	SubPaths              []*Mount
 }
 
 func GetBrokenMountPoints() ([]MountPoint, error) {
@@ -48,10 +49,10 @@ func GetBrokenMountPoints() ([]MountPoint, error) {
 	}
 
 	// get bind mount
-	bindMountByName := getBindMounts(mountByPath)
+	rootPathByVolumeName, subPathByVolumeName := getBindMounts(mountByPath)
 
 	// get broken bind mount
-	return getBrokenBindMounts(globalMountByName, bindMountByName), nil
+	return getBrokenBindMounts(globalMountByName, rootPathByVolumeName, subPathByVolumeName), nil
 }
 
 func getGlobalMounts(mountByPath map[string]*Mount) (globalMountByName map[string]*Mount, err error) {
@@ -77,50 +78,69 @@ func getGlobalMounts(mountByPath map[string]*Mount) (globalMountByName map[strin
 	return
 }
 
-func getBindMounts(mountByPath map[string]*Mount) (bindMountByName map[string][]*Mount) {
-	bindMountByName = make(map[string][]*Mount)
+func getBindMounts(mountByPath map[string]*Mount) (targetPathByVolumeName map[string][]*Mount, subPathByPodUid map[string][]*Mount) {
+	targetPathByVolumeName = make(map[string][]*Mount)
+	subPathByPodUid = make(map[string][]*Mount)
 	for k, m := range mountByPath {
 		var datasetNamespacedName string
 		if strings.Contains(k, "kubernetes.io~csi") && strings.Contains(k, "mount") {
-			// fluid bind mount target path is: /{kubeletRootDir}(default: /var/lib/kubelet)/pods/{podUID}/volumes/kubernetes.io~csi/{namespace}-{datasetName}/mount
+			// root target path for a fluid volume is like: /{kubeletRootDir}(default: /var/lib/kubelet)/pods/{podUID}/volumes/kubernetes.io~csi/{namespace}-{datasetName}/mount
 			fields := strings.Split(k, "/")
 			if len(fields) < 3 {
 				continue
 			}
 			datasetNamespacedName = fields[len(fields)-2]
-			bindMountByName[datasetNamespacedName] = append(bindMountByName[datasetNamespacedName], m)
+			targetPathByVolumeName[datasetNamespacedName] = append(targetPathByVolumeName[datasetNamespacedName], m)
 		}
 		if strings.Contains(k, "volume-subpaths") {
-			// pod using subPath, bind mount path is: /{kubeletRootDir}(default: /var/lib/kubelet)/pods/{podUID}/volume-subpaths/{namespace}-{datasetName}/{containerName}/{volumeIndex}
+			// pod using subPath which is like: /{kubeletRootDir}(default: /var/lib/kubelet)/pods/{podUID}/volume-subpaths/{namespace}-{datasetName}/{containerName}/{volumeIndex}
 			fields := strings.Split(k, "/")
-			if len(fields) < 4 {
+			if len(fields) < 6 {
 				continue
 			}
-			datasetNamespacedName = fields[len(fields)-3]
-			bindMountByName[datasetNamespacedName] = append(bindMountByName[datasetNamespacedName], m)
+			podUid := fields[len(fields)-5]
+			subPathByPodUid[podUid] = append(subPathByPodUid[datasetNamespacedName], m)
 		}
 	}
 	return
 }
 
-func getBrokenBindMounts(globalMountByName map[string]*Mount, bindMountByName map[string][]*Mount) (brokenMounts []MountPoint) {
-	for name, bindMounts := range bindMountByName {
-		globalMount, ok := globalMountByName[name]
+func getBrokenBindMounts(globalMountByName map[string]*Mount, targetPathByVolumeName map[string][]*Mount, subPathByPodUid map[string][]*Mount) (brokenMounts []MountPoint) {
+	for volName, targetPaths := range targetPathByVolumeName {
+		globalMount, ok := globalMountByName[volName]
 		if !ok {
 			// globalMount is unmount, ignore
-			glog.V(6).Infof("ignoring mountpoint %s because of not finding its global mount point", name)
+			glog.V(6).Infof("ignoring mountpoint %s because of not finding its global mount point", volName)
 			continue
 		}
-		for _, bindMount := range bindMounts {
+		for _, targetPath := range targetPaths {
 			// In case of not sharing same peer group in mount info, meaning it a broken mount point
-			if len(utils.IntersectIntegerSets(bindMount.PeerGroups, globalMount.PeerGroups)) == 0 {
+			if len(utils.IntersectIntegerSets(targetPath.PeerGroups, globalMount.PeerGroups)) == 0 {
+				// root target path for a fluid volume is like: /{kubeletRootDir}(default: /var/lib/kubelet)/pods/{podUID}/volumes/kubernetes.io~csi/{namespace}-{datasetName}/mount
+				fields := strings.Split(targetPath.MountPath, "/")
+				if len(fields) < 6 {
+					glog.V(0).Infof("Warning: found a targetPath not containing pod uid (targetPath: %s), skipping recover it", targetPath.MountPath)
+					continue
+				}
+				podUid := fields[len(fields)-5]
+
+				subPathsToRecover := []*Mount{}
+				if subPaths, exists := subPathByPodUid[podUid]; exists {
+					for _, subPath := range subPaths {
+						if strings.Contains(subPath.MountPath, volName) {
+							subPathsToRecover = append(subPathsToRecover, subPath)
+						}
+					}
+				}
+
 				brokenMounts = append(brokenMounts, MountPoint{
-					SourcePath:            path.Join(globalMount.MountPath, bindMount.Subtree),
-					MountPath:             bindMount.MountPath,
-					FilesystemType:        bindMount.FilesystemType,
-					ReadOnly:              bindMount.ReadOnly,
-					Count:                 bindMount.Count,
-					NamespacedDatasetName: name,
+					SourcePath:            path.Join(globalMount.MountPath, targetPath.Subtree),
+					MountPath:             targetPath.MountPath,
+					FilesystemType:        targetPath.FilesystemType,
+					ReadOnly:              targetPath.ReadOnly,
+					Count:                 targetPath.Count,
+					NamespacedDatasetName: volName,
+					SubPaths:              subPathsToRecover,
 				})
 			}
 		}
