@@ -30,12 +30,23 @@ function alluxio_e2e() {
 function juicefs_e2e() {
     set -e
     docker pull redis
-    docker pull minio/minio
-    docker pull juicedata/juicefs-fuse:ce-v1.1.0-rc1
     kind load docker-image redis --name ${KIND_CLUSTER}
+    docker image prune -a -f
+
+    docker pull minio/minio
     kind load docker-image minio/minio --name ${KIND_CLUSTER}
+    docker image prune -a -f
+
+
+    echo ">>> System disk usage before pulling juicefs"
+    df -h
+
+    docker pull juicedata/juicefs-fuse:ce-v1.1.0-rc1
+    echo ">>> System disk usage after pulling juicefs"
+    df -h
     kind load docker-image juicedata/juicefs-fuse:ce-v1.1.0-rc1 --name ${KIND_CLUSTER}
     docker image prune -a -f
+
     bash test/gha-e2e/juicefs/test.sh
 }
 
