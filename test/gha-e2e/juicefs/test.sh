@@ -98,7 +98,7 @@ function main() {
     wait_dataset_bound
     create_job test/gha-e2e/juicefs/write_job.yaml $write_job_name
     wait_job_completed $write_job_name
-    create_job test/gha-e2e/juicefs/read.yaml $read_job_name
+    create_job test/gha-e2e/juicefs/read_job.yaml $read_job_name
     wait_job_completed $read_job_name
     syslog "[TESTCASE $testname SUCCEEDED AT $(date)]"
 }
