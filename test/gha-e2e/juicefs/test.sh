@@ -101,5 +101,7 @@ function main() {
     syslog "[TESTCASE $testname SUCCEEDED AT $(date)]"
 }
 
+main
+
 
 
