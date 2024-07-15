@@ -21,31 +21,14 @@ function check_control_plane_status() {
 
 function alluxio_e2e() {
     set -e
-    # docker pull alluxio/alluxio-dev:2.9.0
-    # kind load docker-image alluxio/alluxio-dev:2.9.0 --name ${KIND_CLUSTER}
     bash test/gha-e2e/alluxio/test.sh
 }
 
 function juicefs_e2e() {
     set -e
     echo ">>> System disk usage before pulling juicefs"
-    docker info
-    docker system df
-    docker ps
-    docker container prune -f
-    docker images
-    docker image prune -a -f
-    docker builder prune -a -f
-    docker buildx prune -a -f
     df -h
     bash test/gha-e2e/juicefs/test.sh
-
-    # docker pull juicedata/juicefs-fuse:ce-v1.1.0-rc1
-    # echo ">>> System disk usage after pulling juicefs"
-    # df -h
-    # kind load docker-image juicedata/juicefs-fuse:ce-v1.1.0-rc1 --name ${KIND_CLUSTER}
-    # docker image prune -a -f
-
 }
 
 check_control_plane_status

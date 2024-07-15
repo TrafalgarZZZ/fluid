@@ -12,6 +12,7 @@ spec:
       labels:
         app: read-job
     spec:
+      restartPolicy: Never
       containers:
       - name: read-job
         image: busybox

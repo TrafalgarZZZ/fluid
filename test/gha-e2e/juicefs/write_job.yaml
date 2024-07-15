@@ -12,6 +12,7 @@ spec:
       labels:
         app: write-job
     spec:
+      restartPolicy: Never
       containers:
       - name: write-job
         image: busybox

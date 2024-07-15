@@ -91,6 +91,8 @@ function clean_up() {
 
 function main() {
     syslog "[TESTCASE $testname STARTS AT $(date)]"
+    setup_redis
+    setup_minio
     create_dataset
     trap clean_up EXIT
     wait_dataset_bound
