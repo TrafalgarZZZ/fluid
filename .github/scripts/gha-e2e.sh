@@ -39,6 +39,13 @@ function juicefs_e2e() {
 
 
     echo ">>> System disk usage before pulling juicefs"
+    docker system df
+    docker ps
+    docker container prune -f
+    docker images
+    docker image prune -a -f
+    docker builder prune -a -f
+    docker buildx prune -a -f
     df -h
 
     docker pull juicedata/juicefs-fuse:ce-v1.1.0-rc1
