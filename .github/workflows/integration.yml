@@ -62,4 +62,11 @@ jobs:
         run: |
           ./.github/scripts/gha-e2e.sh
 
+      - name: Dump environment
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: fluid-github-actions-e2e-logs
+          path: testcase-*.tgz
+          retention-days: 14
           

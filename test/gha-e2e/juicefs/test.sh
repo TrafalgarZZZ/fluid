@@ -83,7 +83,8 @@ function wait_job_completed() {
     syslog "Found succeeded job $job_name"
 }
 
-function clean_up() {
+function dump_env_and_clean_up() {
+    bash tools/diagnose-fluid-juicefs.sh --name $dataset_name --namespace default --collect-path testcase-juicefs.tgz
     syslog "Cleaning up resources for testcase $testname"
     kubectl delete -f test/gha-e2e/juicefs/read_job.yaml
     kubectl delete -f test/gha-e2e/juicefs/write_job.yaml 
@@ -97,7 +98,7 @@ function main() {
     setup_redis
     setup_minio
     create_dataset
-    trap clean_up EXIT
+    trap dump_env_and_clean_up EXIT
     wait_dataset_bound
     create_job test/gha-e2e/juicefs/write_job.yaml $write_job_name
     wait_job_completed $write_job_name

@@ -71,7 +71,8 @@ function wait_job_completed() {
     syslog "Found succeeded job $job_name"
 }
 
-function clean_up() {
+function dump_env_and_clean_up() {
+    bash tools/diagnose-fluid-alluxio.sh --name $dataset_name --namespace default --collect-path testcase-alluxio.tgz
     syslog "Cleaning up resources for testcase $testname"
     kubectl delete -f test/gha-e2e/alluxio/
 }
@@ -79,7 +80,7 @@ function clean_up() {
 function main() {
     syslog "[TESTCASE $testname STARTS AT $(date)]"
     create_dataset
-    trap clean_up EXIT
+    trap dump_env_and_clean_up EXIT
     wait_dataset_bound
     create_job
     wait_job_completed
