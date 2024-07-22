@@ -72,7 +72,7 @@ function wait_job_completed() {
 }
 
 function dump_env_and_clean_up() {
-    bash tools/diagnose-fluid-alluxio.sh collect --name $dataset_name --namespace default --collect-path testcase-alluxio.tgz
+    bash tools/diagnose-fluid-alluxio.sh collect --name $dataset_name --namespace default --collect-path /tmp/testcase-alluxio.tgz
     syslog "Cleaning up resources for testcase $testname"
     kubectl delete -f test/gha-e2e/alluxio/
 }

@@ -80,7 +80,7 @@ function wait_job_completed() {
 }
 
 function dump_env_and_clean_up() {
-    bash tools/diagnose-fluid-jindo.sh collect --name $dataset_name --namespace default --collect-path testcase-jindo.tgz
+    bash tools/diagnose-fluid-jindo.sh collect --name $dataset_name --namespace default --collect-path /tmp/testcase-jindo.tgz
     syslog "Cleaning up resources for testcase $testname"
     kubectl delete -f test/gha-e2e/jindo/
 }
