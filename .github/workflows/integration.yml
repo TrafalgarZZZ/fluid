@@ -66,7 +66,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
-          name: gha-e2e-logs-${{ github.job }}
+          name: gha-e2e-logs-${{ github.job }}-${{ matrix.kubernetes-version }}
           path: "src/github.com/fluid-cloudnative/fluid/e2e-tmp/testcase-*.tgz"
           retention-days: 14
           
