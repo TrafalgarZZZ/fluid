@@ -67,9 +67,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: fluid-github-actions-e2e-logs
-          path: |
-            "/tmp/testcase-alluxio.tgz"
-            "/tmp/testcase-jindo.tgz"
-            "/tmp/testcase-juicefs.tgz"
+          path: "src/github.com/fluid-cloudnative/fluid/e2e-tmp/testcase-*.tgz"
           retention-days: 14
           

@@ -80,6 +80,7 @@ archive() {
   tar_filename="${current_dir}/diagnose_fluid_${timestamp}.tar.gz"
   if [[ ! -z "${collect_path}" ]]; then
     tar_filename=${collect_path}
+    mkdir -p $(dirname "$tar_filename")
   fi
   tar -zcvf "${tar_filename}" "${diagnose_dir}"
   echo "please get ${tar_filename} for diagnostics"
