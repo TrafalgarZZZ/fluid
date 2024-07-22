@@ -36,7 +36,6 @@ function wait_dataset_bound() {
         if [[ $log_interval -eq 3 ]]; then
             log_times=$(expr $log_times + 1)
             syslog "checking dataset.status.phase==Bound (already $(expr $log_times \* $log_interval \* 5)s, last state: $last_state)"
-            kubectl describe pod
             log_interval=0
         fi
 
