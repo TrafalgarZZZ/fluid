@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -128,9 +129,13 @@ func (a *PreloadFilesHandler) MutatePod(pod *corev1.Pod) error {
 }
 
 func (a *PreloadFilesHandler) genPreloadSidecar(preloadingPath string, preloadingThreadNum int, fluidVolName string) corev1.Container {
+	var preloadImage = "registry-vpc.cn-beijing.aliyuncs.com/fluid-namespace/fluid-util:preload-sidecar-v0.2"
+	if customImage, exists := os.LookupEnv("PRELOAD_SIDECAR_IMAGE"); exists && len(customImage) != 0 {
+		preloadImage = customImage
+	}
 	container := corev1.Container{
 		Name:  "fluid-preload",
-		Image: "registry-vpc.cn-beijing.aliyuncs.com/fluid-namespace/fluid-util:preload-sidecar-v0.1",
+		Image: preloadImage,
 		Env: []corev1.EnvVar{
 			{
 				Name:  "WARMUP_THREAD_PER_FILE",
