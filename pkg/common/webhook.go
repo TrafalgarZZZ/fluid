@@ -22,9 +22,10 @@ import (
 )
 
 const (
-	WebhookName            = "fluid-pod-admission-webhook"
-	WebhookServiceName     = "fluid-pod-admission-webhook"
-	WebhookSchedulePodPath = "mutate-fluid-io-v1alpha1-schedulepod"
+	WebhookName             = "fluid-pod-admission-webhook"
+	WebhookServiceName      = "fluid-pod-admission-webhook"
+	WebhookSchedulePodPath  = "mutate-fluid-io-v1alpha1-schedulepod"
+	WebhookPreloadFilesPath = "mutate-fluid-io-v1alpha1-preloadfiles"
 
 	CertSecretName = "fluid-webhook-certs"
 

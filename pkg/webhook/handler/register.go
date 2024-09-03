@@ -19,6 +19,7 @@ package handler
 import (
 	"github.com/fluid-cloudnative/fluid/pkg/common"
 	"github.com/fluid-cloudnative/fluid/pkg/webhook/handler/mutating"
+	"github.com/fluid-cloudnative/fluid/pkg/webhook/handler/preload"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/util/sets"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -26,6 +27,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+)
+
+// +kubebuilder:webhook:path=/mutate-fluid-io-v1alpha1-schedulepod,mutating=true,failurePolicy=fail,sideEffects=None,admissionReviewVersions=v1;v1beta1,groups="",resources=pods,verbs=create;update,versions=v1,name=schedulepod.fluid.io
+
+var (
+	// allHandlers contains admission webhook handlers
+	allHandlers = map[string]common.AdmissionHandler{
+		common.WebhookSchedulePodPath:  &mutating.FluidMutatingHandler{},
+		common.WebhookPreloadFilesPath: &preload.PreloadFilesHandler{},
+	}
 )
 
 type GateFunc func() (enabled bool)
@@ -41,7 +52,8 @@ var (
 )
 
 func init() {
-	addHandlers(mutating.HandlerMap)
+	// TODO: support gate for each handlers
+	addHandlers(allHandlers)
 	// addHandlers(validating.HandlerMap)
 }
 
