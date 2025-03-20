@@ -19,6 +19,7 @@ package mutator
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -182,22 +183,15 @@ func (helper *defaultMutatorHelper) Mutate() (*MutatingPodSpecs, error) {
 }
 
 func (helper *defaultMutatorHelper) mutateDatasetVolumes() error {
-	volumes := helper.Specs.Volumes
-
-	mountPath := helper.template.FuseMountInfo.HostMountPath
-	if helper.template.FuseMountInfo.SubPath != "" {
-		mountPath = mountPath + "/" + helper.template.FuseMountInfo.SubPath
-	}
 
 	mutatedDatasetVolume := corev1.Volume{
 		Name: "",
 		VolumeSource: corev1.VolumeSource{
-			HostPath: &corev1.HostPathVolumeSource{
-				Path: mountPath,
-			},
+			EmptyDir: &corev1.EmptyDirVolumeSource{},
 		},
 	}
 
+	volumes := helper.Specs.Volumes
 	var overriddenVolumeNames []string
 	for i, volume := range volumes {
 		if volume.PersistentVolumeClaim != nil && volume.PersistentVolumeClaim.ClaimName == helper.pvcName {
@@ -208,6 +202,10 @@ func (helper *defaultMutatorHelper) mutateDatasetVolumes() error {
 		}
 	}
 
+	if len(overriddenVolumeNames) == 0 {
+		return nil
+	}
+
 	mountPropagationHostToContainer := corev1.MountPropagationHostToContainer
 
 	helper.ctx.SetDatasetUsedInContainers(false)
@@ -215,6 +213,9 @@ func (helper *defaultMutatorHelper) mutateDatasetVolumes() error {
 		for i, volumeMount := range container.VolumeMounts {
 			if utils.ContainsString(overriddenVolumeNames, volumeMount.Name) {
 				container.VolumeMounts[i].MountPropagation = &mountPropagationHostToContainer
+				if len(container.VolumeMounts[i].SubPath) > 0 {
+					container.VolumeMounts[i].SubPath = filepath.Join("jindofs-fuse", container.VolumeMounts[i].SubPath)
+				}
 				helper.ctx.SetDatasetUsedInContainers(true)
 			}
 		}
@@ -225,12 +226,78 @@ func (helper *defaultMutatorHelper) mutateDatasetVolumes() error {
 		for i, volumeMount := range container.VolumeMounts {
 			if utils.ContainsString(overriddenVolumeNames, volumeMount.Name) {
 				container.VolumeMounts[i].MountPropagation = &mountPropagationHostToContainer
+				container.VolumeMounts[i].SubPath = filepath.Join("jindofs-fuse", container.VolumeMounts[i].SubPath)
 				helper.ctx.SetDatasetUsedInInitContainers(true)
 			}
 		}
 	}
 
+	// filter out host mount volumes
+	filteredVolumes := []corev1.Volume{}
+	for _, vol := range helper.template.VolumesToAdd {
+		if utils.ContainsString(hostMountNames, vol.Name) {
+			continue
+		}
+		filteredVolumes = append(filteredVolumes, vol)
+	}
+	helper.template.VolumesToAdd = filteredVolumes
+
+	for idx, volMount := range helper.template.FuseContainer.VolumeMounts {
+		if utils.ContainsString(hostMountNames, volMount.Name) {
+			helper.template.FuseContainer.VolumeMounts[idx].Name = overriddenVolumeNames[0]
+		}
+	}
+
 	return nil
+	// volumes := helper.Specs.Volumes
+
+	// mountPath := helper.template.FuseMountInfo.HostMountPath
+	// if helper.template.FuseMountInfo.SubPath != "" {
+	// 	mountPath = mountPath + "/" + helper.template.FuseMountInfo.SubPath
+	// }
+
+	// mutatedDatasetVolume := corev1.Volume{
+	// 	Name: "",
+	// 	VolumeSource: corev1.VolumeSource{
+	// 		HostPath: &corev1.HostPathVolumeSource{
+	// 			Path: mountPath,
+	// 		},
+	// 	},
+	// }
+
+	// var overriddenVolumeNames []string
+	// for i, volume := range volumes {
+	// 	if volume.PersistentVolumeClaim != nil && volume.PersistentVolumeClaim.ClaimName == helper.pvcName {
+	// 		name := volume.Name
+	// 		volumes[i] = mutatedDatasetVolume
+	// 		volumes[i].Name = name
+	// 		overriddenVolumeNames = append(overriddenVolumeNames, name)
+	// 	}
+	// }
+
+	// mountPropagationHostToContainer := corev1.MountPropagationHostToContainer
+
+	// helper.ctx.SetDatasetUsedInContainers(false)
+	// for _, container := range helper.Specs.Containers {
+	// 	for i, volumeMount := range container.VolumeMounts {
+	// 		if utils.ContainsString(overriddenVolumeNames, volumeMount.Name) {
+	// 			container.VolumeMounts[i].MountPropagation = &mountPropagationHostToContainer
+	// 			helper.ctx.SetDatasetUsedInContainers(true)
+	// 		}
+	// 	}
+	// }
+
+	// helper.ctx.SetDatasetUsedInInitContainers(false)
+	// for _, container := range helper.Specs.InitContainers {
+	// 	for i, volumeMount := range container.VolumeMounts {
+	// 		if utils.ContainsString(overriddenVolumeNames, volumeMount.Name) {
+	// 			container.VolumeMounts[i].MountPropagation = &mountPropagationHostToContainer
+	// 			helper.ctx.SetDatasetUsedInInitContainers(true)
+	// 		}
+	// 	}
+	// }
+
+	// return nil
 }
 
 func (helper *defaultMutatorHelper) appendFuseContainerVolumes() (err error) {
