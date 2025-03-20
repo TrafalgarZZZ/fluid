@@ -213,9 +213,7 @@ func (helper *defaultMutatorHelper) mutateDatasetVolumes() error {
 		for i, volumeMount := range container.VolumeMounts {
 			if utils.ContainsString(overriddenVolumeNames, volumeMount.Name) {
 				container.VolumeMounts[i].MountPropagation = &mountPropagationHostToContainer
-				if len(container.VolumeMounts[i].SubPath) > 0 {
-					container.VolumeMounts[i].SubPath = filepath.Join("jindofs-fuse", container.VolumeMounts[i].SubPath)
-				}
+				container.VolumeMounts[i].SubPath = filepath.Join("jindofs-fuse", container.VolumeMounts[i].SubPath)
 				helper.ctx.SetDatasetUsedInContainers(true)
 			}
 		}
