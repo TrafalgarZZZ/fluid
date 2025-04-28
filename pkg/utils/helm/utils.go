@@ -72,12 +72,23 @@ func InstallRelease(name string, namespace string, valueFile string, chartName s
 	}
 	log.Info("Exec", "command", cmd.String())
 	// cmd.Env = env
-	out, err := cmd.CombinedOutput()
-	log.Info(string(out))
 
+	var (
+		cmdOut []byte
+		cmdErr error
+	)
+
+	func() {
+		defer utils.TimeTrack(time.Now(), "InstallRelease", "command", cmd.String())
+		cmdOut, cmdErr = cmd.CombinedOutput()
+	}()
+
+	log.Info(string(cmdOut))
+
+	err = cmdErr
 	if err != nil {
 		log.Error(err, "failed to execute InstallRelease() command", "command", cmd.String())
-		err = fmt.Errorf("failed to install kubernetes resources of %s: %s", chartName, string(out))
+		err = fmt.Errorf("failed to install kubernetes resources of %s: %s", chartName, string(cmdOut))
 
 		rollbackErr := DeleteReleaseIfExists(name, namespace)
 		if rollbackErr != nil {
@@ -183,102 +194,102 @@ func DeleteRelease(name, namespace string) error {
 	return nil
 }
 
-// ListReleases return an array with all releases' names in a given namespace
-func ListReleases(namespace string) (releases []string, err error) {
-	releases = []string{}
-	_, err = exec.LookPath(helmCmd[0])
-	if err != nil {
-		return releases, err
-	}
+// // ListReleases return an array with all releases' names in a given namespace
+// func ListReleases(namespace string) (releases []string, err error) {
+// 	releases = []string{}
+// 	_, err = exec.LookPath(helmCmd[0])
+// 	if err != nil {
+// 		return releases, err
+// 	}
 
-	cmd, err := cmdguard.Command(helmCmd[0], "list", "-q", "-n", namespace)
-	if err != nil {
-		return releases, err
-	}
-	// support multiple cluster management
-	// if types.KubeConfig != "" {
-	// 	cmd.Env = append(cmd.Env, fmt.Sprintf("KUBECONFIG=%s", types.KubeConfig))
-	// }
-	out, err := cmd.Output()
-	if err != nil {
-		return releases, err
-	}
-	return strings.Split(string(out), "\n"), nil
-}
+// 	cmd, err := cmdguard.Command(helmCmd[0], "list", "-q", "-n", namespace)
+// 	if err != nil {
+// 		return releases, err
+// 	}
+// 	// support multiple cluster management
+// 	// if types.KubeConfig != "" {
+// 	// 	cmd.Env = append(cmd.Env, fmt.Sprintf("KUBECONFIG=%s", types.KubeConfig))
+// 	// }
+// 	out, err := cmd.Output()
+// 	if err != nil {
+// 		return releases, err
+// 	}
+// 	return strings.Split(string(out), "\n"), nil
+// }
 
-// ListReleaseMap returns a map with all releases' names and app versions in a given namespace.
-func ListReleaseMap(namespace string) (releaseMap map[string]string, err error) {
-	releaseMap = map[string]string{}
-	_, err = exec.LookPath(helmCmd[0])
-	if err != nil {
-		return releaseMap, err
-	}
+// // ListReleaseMap returns a map with all releases' names and app versions in a given namespace.
+// func ListReleaseMap(namespace string) (releaseMap map[string]string, err error) {
+// 	releaseMap = map[string]string{}
+// 	_, err = exec.LookPath(helmCmd[0])
+// 	if err != nil {
+// 		return releaseMap, err
+// 	}
 
-	cmd, err := cmdguard.Command(helmCmd[0], "list", "-n", namespace)
-	if err != nil {
-		return releaseMap, err
-	}
-	// // support multiple cluster management
-	// if types.KubeConfig != "" {
-	// 	cmd.Env = append(cmd.Env, fmt.Sprintf("KUBECONFIG=%s", types.KubeConfig))
-	// }
-	out, err := cmd.Output()
-	if err != nil {
-		return releaseMap, err
-	}
-	lines := strings.Split(string(out), "\n")
+// 	cmd, err := cmdguard.Command(helmCmd[0], "list", "-n", namespace)
+// 	if err != nil {
+// 		return releaseMap, err
+// 	}
+// 	// // support multiple cluster management
+// 	// if types.KubeConfig != "" {
+// 	// 	cmd.Env = append(cmd.Env, fmt.Sprintf("KUBECONFIG=%s", types.KubeConfig))
+// 	// }
+// 	out, err := cmd.Output()
+// 	if err != nil {
+// 		return releaseMap, err
+// 	}
+// 	lines := strings.Split(string(out), "\n")
 
-	for _, line := range lines {
-		line = strings.Trim(line, " ")
-		if !strings.Contains(line, "NAME") {
-			cols := strings.Fields(line)
-			// log.Debugf("%d cols: %v", len(cols), cols)
-			if len(cols) > 1 {
-				// log.Debugf("releaseMap: %s=%s\n", cols[0], cols[len(cols)-1])
-				releaseMap[cols[0]] = cols[len(cols)-1]
-			}
-		}
-	}
+// 	for _, line := range lines {
+// 		line = strings.Trim(line, " ")
+// 		if !strings.Contains(line, "NAME") {
+// 			cols := strings.Fields(line)
+// 			// log.Debugf("%d cols: %v", len(cols), cols)
+// 			if len(cols) > 1 {
+// 				// log.Debugf("releaseMap: %s=%s\n", cols[0], cols[len(cols)-1])
+// 				releaseMap[cols[0]] = cols[len(cols)-1]
+// 			}
+// 		}
+// 	}
 
-	return releaseMap, nil
-}
+// 	return releaseMap, nil
+// }
 
-// ListAllReleasesWithDetail returns a map with all releases' names and other info in a given namespace
-func ListAllReleasesWithDetail(namespace string) (releaseMap map[string][]string, err error) {
-	releaseMap = map[string][]string{}
-	_, err = exec.LookPath(helmCmd[0])
-	if err != nil {
-		return releaseMap, err
-	}
+// // ListAllReleasesWithDetail returns a map with all releases' names and other info in a given namespace
+// func ListAllReleasesWithDetail(namespace string) (releaseMap map[string][]string, err error) {
+// 	releaseMap = map[string][]string{}
+// 	_, err = exec.LookPath(helmCmd[0])
+// 	if err != nil {
+// 		return releaseMap, err
+// 	}
 
-	cmd, err := cmdguard.Command(helmCmd[0], "list", "--all", "-n", namespace)
-	if err != nil {
-		return releaseMap, err
-	}
-	// support multiple cluster management
-	// if types.KubeConfig != "" {
-	// 	cmd.Env = append(cmd.Env, fmt.Sprintf("KUBECONFIG=%s", types.KubeConfig))
-	// }
-	out, err := cmd.Output()
-	if err != nil {
-		return releaseMap, err
-	}
-	lines := strings.Split(string(out), "\n")
+// 	cmd, err := cmdguard.Command(helmCmd[0], "list", "--all", "-n", namespace)
+// 	if err != nil {
+// 		return releaseMap, err
+// 	}
+// 	// support multiple cluster management
+// 	// if types.KubeConfig != "" {
+// 	// 	cmd.Env = append(cmd.Env, fmt.Sprintf("KUBECONFIG=%s", types.KubeConfig))
+// 	// }
+// 	out, err := cmd.Output()
+// 	if err != nil {
+// 		return releaseMap, err
+// 	}
+// 	lines := strings.Split(string(out), "\n")
 
-	for _, line := range lines {
-		line = strings.Trim(line, " ")
-		if !strings.Contains(line, "NAME") {
-			cols := strings.Fields(line)
-			// log.Debugf("%d cols: %v", len(cols), cols)
-			if len(cols) > 3 {
-				// log.Debugf("releaseMap: %s=%s\n", cols[0], cols)
-				releaseMap[cols[0]] = cols
-			}
-		}
-	}
+// 	for _, line := range lines {
+// 		line = strings.Trim(line, " ")
+// 		if !strings.Contains(line, "NAME") {
+// 			cols := strings.Fields(line)
+// 			// log.Debugf("%d cols: %v", len(cols), cols)
+// 			if len(cols) > 3 {
+// 				// log.Debugf("releaseMap: %s=%s\n", cols[0], cols)
+// 				releaseMap[cols[0]] = cols
+// 			}
+// 		}
+// 	}
 
-	return releaseMap, nil
-}
+// 	return releaseMap, nil
+// }
 
 // DeleteReleaseIfExists deletes a release with given name and namespace if it exists.
 // A wrapper of CheckRelease() and DeleteRelease()
