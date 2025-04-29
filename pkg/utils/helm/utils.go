@@ -78,11 +78,7 @@ func InstallRelease(name string, namespace string, valueFile string, chartName s
 		cmdErr error
 	)
 
-	func() {
-		defer utils.TimeTrack(time.Now(), "InstallRelease", "command", cmd.String())
-		cmdOut, cmdErr = cmd.CombinedOutput()
-	}()
-
+	cmdOut, cmdErr = cmd.CombinedOutput()
 	log.Info(string(cmdOut))
 
 	err = cmdErr
@@ -169,6 +165,7 @@ func CheckRelease(name, namespace string) (exist bool, err error) {
 
 // DeleteRelease deletes release with the name and namespace
 func DeleteRelease(name, namespace string) error {
+	defer utils.TimeTrack(time.Now(), "Helm.DeleteRelease", "name", name, "namespace", namespace)
 	binary, err := exec.LookPath(helmCmd[0])
 	if err != nil {
 		return err
