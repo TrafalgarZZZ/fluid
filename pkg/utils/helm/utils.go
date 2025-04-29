@@ -104,7 +104,7 @@ func CheckRelease(name, namespace string) (exist bool, err error) {
 		return exist, err
 	}
 
-	cmd, err := cmdguard.Command(helmCmd[0], "status", name, "-n", namespace)
+	cmd, err := cmdguard.Command(helmCmd[0], "status", name, "-n", namespace, "--revision", "1")
 	if err != nil {
 		return exist, err
 	}
