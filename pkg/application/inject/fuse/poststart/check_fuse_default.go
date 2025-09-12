@@ -41,9 +41,11 @@ function log() {
 	echo -e ">>> $(date '+%Y-%m-%d %H:%M:%S') fluid-post-start-check $msg"
 }
 
-ConditionPathIsMountPoint="$1"
+MountPointToCheck="$1"
 MountType="$2"
 SubPath="$3"
+
+log "Start to check if mount point is ready: MountPointToCheck: $MountPointToCheck, MountType: $MountType, SubPath: $SubPath"
 
 # grep /dev/fuse if the mountType equals to jindo
 if [[ "$MountType" == "jindo" ]]; then
@@ -52,7 +54,7 @@ fi
 
 count=1
 limit=30
-while ! cat /proc/self/mountinfo | grep $ConditionPathIsMountPoint | grep $MountType
+while ! cat /proc/self/mountinfo | grep $MountPointToCheck | grep $MountType
 do
     sleep 1
     count=¬expr $count + 1¬
@@ -64,12 +66,12 @@ do
 done
 
 # different with csi, as here the mount point is the parent dir of the fuse mount point, 
-if [ ! -e  $ConditionPathIsMountPoint/*/$SubPath ] ; then
+if [ ! -e  $MountPointToCheck/*/$SubPath ] ; then
   log "sub path [$SubPath] not exist!"
   exit 2
 fi
 
-log "succeed in checking mount point $ConditionPathIsMountPoint after $count attempts"
+log "succeed in checking mount point $MountPointToCheck after $count attempts"
 `
 )
 
