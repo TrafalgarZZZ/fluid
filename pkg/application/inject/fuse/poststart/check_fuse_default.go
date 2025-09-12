@@ -41,6 +41,11 @@ function log() {
 	echo -e ">>> $(date '+%Y-%m-%d %H:%M:%S') fluid-post-start-check $msg"
 }
 
+function dump_mount_info() {
+	log "Dumpping mount info:"
+	cat /proc/self/mountinfo | grep $MountPointToCheck | grep $MountType
+}
+
 MountPointToCheck="$1"
 MountType="$2"
 SubPath="$3"
@@ -61,6 +66,7 @@ do
     if test $count -eq $limit
     then
         log "timed out checking mount point for $limit seconds!"
+		dump_mount_info
         exit 1
     fi
 done
@@ -68,6 +74,7 @@ done
 # different with csi, as here the mount point is the parent dir of the fuse mount point, 
 if [ ! -e  $MountPointToCheck/*/$SubPath ] ; then
   log "sub path [$SubPath] not exist!"
+  dump_mount_info
   exit 2
 fi
 
