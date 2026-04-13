@@ -36,7 +36,7 @@ const (
 )
 
 var (
-	pvcDeleteTimeout = 30 * time.Second
+	pvcDeleteTimeout = 0 * time.Second
 )
 
 func GetPersistentVolume(client client.Reader, name string) (pv *corev1.PersistentVolume, err error) {
