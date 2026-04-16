@@ -32,6 +32,104 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+func CleanUpFluidManagedVolumeResources(client client.Client, runtime base.RuntimeInfoInterface, log logr.Logger) (err error) {
+	pvcFound, err := kubeclient.IsPersistentVolumeClaimExist(client, runtime.GetName(), runtime.GetNamespace(), common.GetExpectedFluidAnnotations())
+	if err != nil {
+		return err
+	}
+
+	if pvcFound {
+		err = kubeclient.DeletePersistentVolumeClaim(client, runtime.GetName(), runtime.GetNamespace())
+		if err != nil {
+			return err
+		}
+	}
+
+	pvFound, err := kubeclient.IsPersistentVolumeExist(client, runtime.GetPersistentVolumeName(), common.GetExpectedFluidAnnotations())
+	if err != nil {
+		return err
+	}
+
+	if pvFound {
+		err = kubeclient.DeletePersistentVolume(client, runtime.GetPersistentVolumeName())
+		if err != nil {
+			return err
+		}
+	}
+
+	stillFound := pvcFound || pvFound
+	if stillFound {
+		var ctx context.Context
+		var cancelFunc context.CancelFunc
+		var backoff wait.Backoff
+		if utils.GetBoolValueFromEnv(common.LegacyEnvForceCleanUpManagedPVC, false) {
+			// for backward compatibility
+			backoff = wait.Backoff{Duration: 1 * time.Second, Steps: 10}
+			ctx, cancelFunc = context.WithTimeout(context.Background(), 10*time.Second)
+		} else {
+			backoff = wait.Backoff{Duration: 100 * time.Millisecond, Steps: 10, Jitter: 0.2}
+			ctx, cancelFunc = context.WithTimeout(context.Background(), 1*time.Second)
+		}
+		defer cancelFunc()
+
+		err := wait.ExponentialBackoffWithContext(ctx, backoff, func(ctx context.Context) (done bool, err error) {
+			pvcStillFound, err := kubeclient.IsPersistentVolumeClaimExist(client, runtime.GetName(), runtime.GetNamespace(), common.GetExpectedFluidAnnotations())
+			if err != nil {
+				return false, err
+			}
+
+			// WARN: This is a LEGACY MECHANISM and will be removed in the future.
+			// force deletion of pvc-protection finalizer will not be done, we'll wait until the pvc is really deleted by the PV controller.
+			if pvcStillFound && utils.GetBoolValueFromEnv(common.LegacyEnvForceCleanUpManagedPVC, false) {
+				should, err := kubeclient.ShouldRemoveProtectionFinalizer(client, runtime.GetName(), runtime.GetNamespace())
+				if err != nil {
+					// ignore NotFound error and re-check existence if the pvc is already deleted
+					if utils.IgnoreNotFound(err) == nil {
+						return false, nil
+					}
+				}
+
+				if should {
+					log.Info("Should forcibly remove pvc-protection finalizer")
+					err = kubeclient.RemoveProtectionFinalizer(client, runtime.GetName(), runtime.GetNamespace())
+					if err != nil {
+						// ignore NotFound error and re-check existence if the pvc is already deleted
+						if utils.IgnoreNotFound(err) == nil {
+							return false, nil
+						}
+						log.Info("Failed to remove finalizers", "name", runtime.GetName(), "namespace", runtime.GetNamespace())
+						return false, err
+					}
+				}
+			}
+
+			pvStillFound, err := kubeclient.IsPersistentVolumeExist(client, runtime.GetPersistentVolumeName(), common.GetExpectedFluidAnnotations())
+			if err != nil {
+				return false, err
+			}
+
+			if pvcStillFound || pvStillFound {
+				return false, nil
+			}
+
+			return true, nil
+		})
+
+		if err != nil {
+			if wait.Interrupted(err) {
+				return errors.Wrapf(err, "timeout waiting for PVC %s and PV %s to be deleted after 1-second retry", runtime.GetName(), runtime.GetPersistentVolumeName())
+			}
+			return err
+		}
+
+		log.Info("The PVC and PV are deleted successfully",
+			"name", runtime.GetName(),
+			"namespace", runtime.GetNamespace())
+	}
+
+	return nil
+}
+
 // DeleteFusePersistentVolume
 func DeleteFusePersistentVolume(client client.Client,
 	runtime base.RuntimeInfoInterface,

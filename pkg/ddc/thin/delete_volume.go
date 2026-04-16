@@ -29,17 +29,12 @@ func (t ThinEngine) DeleteVolume() (err error) {
 		}
 	}
 
-	err = t.deleteFusePersistentVolumeClaim()
+	runtimeInfo, err := t.getRuntimeInfo()
 	if err != nil {
 		return
 	}
 
-	err = t.deleteFusePersistentVolume()
-	if err != nil {
-		return
-	}
-
-	return
+	return volumehelper.CleanUpFluidManagedVolumeResources(t.Client, runtimeInfo, t.Log)
 }
 
 // deleteFusePersistentVolume
